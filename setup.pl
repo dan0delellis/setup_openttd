@@ -66,7 +66,7 @@ foreach my $file($archive_fname,$gfx_fname) {
 }
 
 #source diretory for graphics packs, since it's way easiwer to just do this than to try and compile it with headless support
-(my $gfx_dir = $gfx_fname) =~ s/-all.*$//g;
+(my $gfx_data = $gfx_fname) =~ s/-all.*$//g;
 
 #master directory for game data. will house the executable and be the target for symlinks
 ($game_path = $archive_fname) =~ s/^(.+-amd64).*$/~\/$1\//;
@@ -75,7 +75,8 @@ foreach my $file($archive_fname,$gfx_fname) {
 $gfx_path = $game_path . "baseset/";
 
 print "Linking graphics data into game path...\n";
-`ln -s $gfx_dir $gfx_path`;
+`ln -s $gfx_data\* $gfx_path\.`;
+
 
 sub unpack_file {
     my ($f) = @_;
