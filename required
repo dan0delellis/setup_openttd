@@ -1,1 +1,3 @@
 vim git adduser openssh-client wamerican openssl
+curl wget
+ca-certificates

@@ -52,7 +52,7 @@ if ($system) {
         push @useradd_opts, ("-d", $home_path);
         $user_data->{'home_directory'} = $home_path;
     } else {
-        $user_data->{'home_direcotry'} = "/home/$user";
+        $user_data->{'home_directory'} = "/home/$user";
     }
 }
 
