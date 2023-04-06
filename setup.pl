@@ -2,24 +2,35 @@
 use Getopt::Long;
 use Data::Dumper;
 
-my $gitroot = `git rev-parse --show-toplevel`;
+my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
 my $dict = "/usr/share/dict/words";
 
-chomp $gitroot;
-
 my ($skel_path, $user, $shell) = ("$gitroot/skel", "openttd", "/bin/bash");
-my ($password, $no_pw);
+my ($password, $no_pw,$no_skel,$system,$no_shell,$system_user);
 
 my @useradd_opts = qw/useradd/;
+
+my $user_opts;
 
 GetOptions (
     "password=s" => \$password,
     "skel-path=s"   => \$skel_path,
     "username=s"   => \$user,
-    "no-password" => \$no_pw,
+    "shell=s"      => \$shell,
+    "system-user!" => \$system_user,
+    "no-shell!"    => \$no_shell,
+    "no-password!" => \$no_pw,
+    "no-skeleton!" => \$no_skel,
 ) or die("Error in command line arguments\n");
 
 push @useradd_opts, $user;
+
+if ($system) {
+    $no_pw = 1;
+    $no_skel = 1;
+    $no_shell = 1;
+    push @useradd_opts, "--system";
+}
 
 unless($password || $no_pw) {
     my $openssl_installed = `dpkg-query --show -f'\${Version}' openssl`;
@@ -49,5 +60,13 @@ unless($password || $no_pw) {
     chomp $hash;
     push @useradd_opts, ("-p", "'$hash'");
 }
+
+unless($no_skel) {
+    push @useradd_opts, ("-k", $skel_path);
+}
+
+unless($no_shell) {
+    push @useradd_opts, ("-s", $shell);
+}
+
 `@useradd_opts`;
-print "Password for user $user : '$password'\n";
