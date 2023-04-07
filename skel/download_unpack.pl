@@ -1,7 +1,10 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use Storable qw ( freeze );
+use MIME::Base64;
 use Data::Dumper;
+use Getopt::Long;
 
 my $debug = 1;
 my $base_url = "https://www.openttd.org/downloads/";
@@ -10,6 +13,7 @@ my $latest_url = $base_url . "openttd-releases/latest";
 my $archive_regex = "openttd-[0-9\.]+-linux-generic";
 my $gfx_regex = "opengfx-[0-9\.]+-all.[a-zA-Z]+";
 my $bin_curl = "/usr/bin/curl -s -f ";
+my $bin_wget = "/usr/bin/wget -q "; 
 
 my ($archive_url, $latest_gfx, $gfx_url,$game_path,$gfx_path);
 
@@ -72,23 +76,23 @@ foreach my $file($archive_fname,$gfx_fname) {
 #target directory for graphics data
 $gfx_path = "$game_path/baseset/";
 
-print "Copying graphics data into game path...\n";
+print "Copying graphics data into game path...\n" if $debug;
 do_cmd("ln $gfx_data/* $gfx_path/.");
 
-print "Moving game data to target location\n";
+print "Moving game data to target location\n" if $debug;
 do_cmd("mv $game_path ~/.");
 
-print "Cleaning up\n";
+print "Cleaning up\n" if $debug;
 unlink $workdir;
 
-print "All Done!\n";
+print "All Done!\n" if $debug;
 
 sub unpack_file {
     my ($f) = @_;
     $f = "$workdir/$f";
 
 
-    print "Unpacking file $f....\n"    ;
+    print "Unpacking file $f....\n" if $debug ;
     if ($f =~ m/\.tar(\.[a-z]+)?$/) {
         do_cmd("tar xf $f -C $workdir");
         return
@@ -96,7 +100,7 @@ sub unpack_file {
     if ($f =~ m/\.zip$/) {
         my $not_tarred = do_cmd("unzip -l $f | egrep -q '\.tar\$'");
         if (!$not_tarred) {
-            print "oh boy it's a hidden tarball\n";
+            print "oh boy it's a hidden tarball\n" if $debug;
             do_cmd("unzip -p $f | tar x -C $workdir");
             die "$!" if $?;
         } else {
@@ -113,12 +117,12 @@ sub unpack_file {
 
 sub pull_file {
     my ($url,$fname) = @_;
-    print "downloading $url to $fname\n";
+    print "downloading $url to $fname\n" if $debug;
     unless (-s $fname ) {
-        do_cmd("wget $url -P $workdir");
+        do_cmd("$bin_wget $url -P $workdir");
         die "$! exit code $?" if $?;
     } else {
-        print "File already exists. skipping. delete ./$fname if invalid\n";
+        print "File already exists. skipping. delete ./$fname if invalid\n" if $debug;
     }
 }
 
@@ -129,11 +133,6 @@ sub get_fname {
     my $fname = pop @parts;
     chomp $fname;
     return $fname;
-}
-
-sub yell {
-    my ($msg) = @_;
-    print Dumper $msg if $debug;
 }
 
 sub do_cmd {

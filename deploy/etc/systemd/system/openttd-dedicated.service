@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenTTD Dedicated Server
+Documentation=https://wiki.openttd.org/en/Manual/Server
+After=network.target 
+
+[Service]
+#ExecStartPre=/usr/local/bin/generate_seed.sh
+EnvironmentFile=-/etc/default/openttd.options
+EnvironmentFile=-/etc/default/openttd.seed
+ExecStart=/usr/local/bin/openttd $CLI_OPTS $CLI_SEED
+ExecStart=/bin/false
+KillMode=mixed
+Restart=always
+Type=simple
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+Alias=openttd.service

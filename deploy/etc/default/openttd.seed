@@ -1,0 +1,3 @@
+#this file will be overwritten by /usr/local/bin/generate_seed.sh
+#largest possible seed:
+CLI_SEED="-G 4294967295"
