@@ -6,52 +6,66 @@ use MIME::Base64;
 use Data::Dumper;
 use Getopt::Long;
 
-my $debug = 1;
+my $debug;
 my $base_url = "https://www.openttd.org/downloads/";
 my $latest_url = $base_url . "openttd-releases/latest";
+
+#hashref to put stuff we care about. At this point, it will be the archive urls, the extracted path of the game, and the path of the executable
+my $return_data;
 
 my $archive_regex = "openttd-[0-9\.]+-linux-generic";
 my $gfx_regex = "opengfx-[0-9\.]+-all.[a-zA-Z]+";
 my $bin_curl = "/usr/bin/curl -s -f ";
-my $bin_wget = "/usr/bin/wget -q "; 
+my $bin_wget = "/usr/bin/wget -q ";
 
-my ($archive_url, $latest_gfx, $gfx_url,$game_path,$gfx_path);
+my ($archive_url, $latest_gfx, $gfx_url, $game_path, $gfx_path);
+my ($archive_fname, $gfx_fname);
 
-my $target_dir = "~/.";
 
-my @tmp = do_cmd("mktemp -d");
-my $workdir = pop @tmp; chomp $workdir;
-undef @tmp;
+$archive_url="http://10.1.0.4/openttd-13.0-linux-generic-amd64.tar.xz";
+$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
-my $cmd = "$bin_curl $latest_url";
-my @res = do_cmd($cmd);
+my $install_dir = "~/.";
+my $target_dir = do_cmd_oneline("realpath $install_dir");
 
-foreach my $line (@res) {
-    chomp $line;
-    #Find url for archive, and the graphics url while we're at it
-    next unless ($line =~ m/opengfx/ || $line =~ m/filename/ && $line =~ m/linux/);
-    #string manipulation for fun and profit
+my $workdir = do_cmd_oneline("mktemp -d");
 
-    $line = extract_url($line);
+unless($archive_url && $gfx_url) {
+    my $cmd = "$bin_curl $latest_url";
+    my @res = do_cmd($cmd);
 
-    if ($line =~ m/opengfx/) {
-        #hey cool we found where the graphics can be downloaed
-        $line =~ s/\.\.\//$base_url/;
+    foreach my $line (@res) {
+        chomp $line;
+        #Find url for archive, and the graphics url while we're at it
+        next unless ($line =~ m/opengfx/ || $line =~ m/filename/ && $line =~ m/linux/);
+        #string manipulation for fun and profit
 
-        #for some stupid reason the .html is not a valid url
-        $line =~ s/\.[a-z]+$//;
-        $latest_gfx = $line;
-        $gfx_url = get_archive($latest_gfx,$gfx_regex)
+        $line = extract_url($line);
+
+        if ($line =~ m/opengfx/) {
+            #hey cool we found where the graphics can be downloaed
+            $line =~ s/\.\.\//$base_url/;
+
+            #for some stupid reason the .html is not a valid url
+            $line =~ s/\.[a-z]+$//;
+            $latest_gfx = $line;
+            $gfx_url = get_archive($latest_gfx,$gfx_regex)
+        }
+        if ($line =~ m/$archive_regex/) {
+            $archive_url = $line;
+            next
+        }
     }
-    if ($line =~ m/$archive_regex/) {
-        $archive_url = $line;
-        next
-    }
-
 }
+die "Unable to find downloadable URLs for game and/or graphics pack\n" unless($archive_url && $gfx_url);
 
-my $archive_fname = get_fname($archive_url);
-my $gfx_fname = get_fname($gfx_url);
+$archive_fname = get_fname($archive_url);
+$gfx_fname = get_fname($gfx_url);
+
+$return_data->{game_url} = $archive_url;
+$return_data->{game_archive} = $archive_fname;
+$return_data->{gfx_url} = $gfx_url;
+$return_data->{gfx_archive} = $gfx_fname;
 
 pull_file($archive_url,$archive_fname);
 pull_file($gfx_url, $gfx_fname);
@@ -71,7 +85,8 @@ foreach my $file($archive_fname,$gfx_fname) {
 (my $gfx_data = "$workdir/$gfx_fname") =~ s/-all.*$//g;
 
 #master directory for game data. will house the executable and be the target for symlinks
-($game_path = "$workdir/$archive_fname") =~ s/^(.+-amd64).*$/\/$1\//;
+(my $game_dir = $archive_fname) =~ s/^(.+-amd64).*$/\/$1\//;
+$game_path = "$workdir/$game_dir";
 
 #target directory for graphics data
 $gfx_path = "$game_path/baseset/";
@@ -80,7 +95,13 @@ print "Copying graphics data into game path...\n" if $debug;
 do_cmd("ln $gfx_data/* $gfx_path/.");
 
 print "Moving game data to target location\n" if $debug;
-do_cmd("mv $game_path ~/.");
+do_cmd("mv $game_path $target_dir");
+
+$return_data->{extract_path} = $target_dir . $game_dir;
+$return_data->{game_path} = do_cmd_oneline("find $return_data->{extract_path} -type f -executable");
+
+my $dat = encode_base64 freeze($return_data);
+print $dat;
 
 print "Cleaning up\n" if $debug;
 unlink $workdir;
@@ -133,6 +154,14 @@ sub get_fname {
     my $fname = pop @parts;
     chomp $fname;
     return $fname;
+}
+
+sub do_cmd_oneline {
+    my ($cmd) = @_;
+    my @res = do_cmd($cmd);
+    my $line = pop @res;
+    chomp $line;
+    return $line;
 }
 
 sub do_cmd {
