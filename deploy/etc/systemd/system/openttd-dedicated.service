@@ -8,7 +8,6 @@ After=network.target
 EnvironmentFile=-/etc/default/openttd.options
 EnvironmentFile=-/etc/default/openttd.seed
 ExecStart=/usr/local/bin/openttd $CLI_OPTS $CLI_SEED
-ExecStart=/bin/false
 KillMode=mixed
 Restart=always
 Type=simple
