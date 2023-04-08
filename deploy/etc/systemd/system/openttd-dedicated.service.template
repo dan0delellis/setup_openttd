@@ -5,13 +5,14 @@ After=network.target
 
 [Service]
 #ExecStartPre=/usr/local/bin/generate_seed.sh
-EnvironmentFile=-/etc/default/openttd.options
-EnvironmentFile=-/etc/default/openttd.seed
-ExecStart=/usr/local/bin/openttd $CLI_OPTS $CLI_SEED
+EnvironmentFile=-/etc/default/opentt.d/*
+WorkingDirectory=<GAME_INSTALL>
+ExecStart=<EXECUTABLE_PATH> $CLI_OPTS $CLI_SEED
 KillMode=mixed
-Restart=always
+Restart=on-failure
 Type=simple
 RestartSec=10
+User=<USER>
 
 [Install]
 WantedBy=multi-user.target
