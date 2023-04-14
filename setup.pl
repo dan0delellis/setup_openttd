@@ -33,11 +33,17 @@ generate_system_conf($conf_base64);
 finish();
 
 sub cleanup_old {
-    `userdel -r openttd 2> /dev/null`;
-    `rm /etc/systemd/system/openttd*.service`;
-    `systemctl daemon-reload`;
-    `rm -rf /etc/default/opentt.d`;
-    `rm /usr/local/bin/generate_seed.sh`;
+    my @cmds = (
+        "userdel -r openttd",
+        "rm /etc/systemd/system/openttd*.service",
+        "systemctl daemon-reload",
+        "rm -rf /etc/default/opentt.d",
+        "rm /usr/local/bin/generate_seed.sh"
+    );
+
+    foreach my $cmd (@cmds) {
+        run_cmd_silent($cmd);
+    }
 }
 
 sub setup_user {
@@ -71,4 +77,9 @@ sub finish {
     print "Unpacked to: $user_data->{home_directory}\n";
     print "Created User: $user_data->{username}\n";
     print "Password: \'$user_data->{password}\'\n";
+}
+
+sub run_cmd_silent {
+    my ($c) = @_;
+    `$c 2> /dev/null`;
 }
