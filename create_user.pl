@@ -66,9 +66,9 @@ unless($no_pw) {
     my $salt = hungry_for_words(1);
     #cursed
     $salt = pop @$salt; chomp $salt;
+    $salt = encode_base64 $salt;
     unless ($password) {
         $password = hungry_for_words(3);
-
 
         $password = join(" ", @$password); chomp $password;
 
