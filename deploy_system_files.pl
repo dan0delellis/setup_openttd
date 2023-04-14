@@ -8,10 +8,9 @@ use MIME::Base64;
 die "Must run as root\n" unless ($> == 0);
 
 my $seed_script = "/usr/local/bin/generate_seed.sh";
-my $def_seed = "/etc/default/openttd.seed";
-my $def_opt = "/etc/default/openttd.options";
+my $def_seed = "/etc/default/opentt.d/openttd.seed";
+my $def_opt = "/etc/default/opentt.d/openttd.options";
 my $tmp_systemd = "/etc/systemd/system/openttd-dedicated.service.template";
-my $defaults_path = "/etc/default/opentt.d";
 
 my $enc_data;
 
@@ -29,6 +28,7 @@ my $conf;
 
 #If called from setup.pl, $conf will be a base64 data block that decodes/thaws to a hash
 if ($enc_data) {
+    print Dumper @ARGV;
     $conf = thaw (decode_base64 ($enc_data));
 
     $deploy_root = $conf->{deploy_source};
@@ -45,11 +45,15 @@ die "Unable to determine game install directory\n" unless $GAME_INSTALL;
 my ($gen_file, $target) = generate_systemd($tmp_systemd,$deploy_root);
 
 #copy files in place
-`mkdir $defaults_path`
+`mkdir $defaults_path`;
 `mv $gen_file $target`;
 
-`mv $def_seed $defaults_path/.`;
-`mv $def_opt $defaults_path/.`;
+#defaults files
+`ln $deploy_root/$def_seed $def_seed`;
+`ln $deploy_root/$def_opt $def_seed`;
+
+#seed generator pre-exec script
+`ln $deploy_root/$seed_script $seed_script`;
 
 #systemd reload
 `systemctl daemon-reload`;
