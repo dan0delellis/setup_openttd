@@ -37,6 +37,7 @@ sub cleanup_old {
     `rm /etc/systemd/system/openttd*.service`;
     `systemctl daemon-reload`;
     `rm -rf /etc/default/opentt.d`;
+    `rm /usr/local/bin/generate_seed.sh`;
 }
 
 sub setup_user {

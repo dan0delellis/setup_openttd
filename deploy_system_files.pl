@@ -28,7 +28,6 @@ my $conf;
 
 #If called from setup.pl, $conf will be a base64 data block that decodes/thaws to a hash
 if ($enc_data) {
-    print Dumper @ARGV;
     $conf = thaw (decode_base64 ($enc_data));
 
     $deploy_root = $conf->{deploy_source};
