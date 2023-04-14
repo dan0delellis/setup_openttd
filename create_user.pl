@@ -78,9 +78,9 @@ unless($no_pw) {
     }
     $user_data->{'password'} = $password;
 
-    my $hash = `openssl passwd -6 -salt $salt  \"$password\"`;
+    my $hash = `openssl passwd -6 -salt \"$salt\" \"$password\"`;
     if ($?) {
-        die "Failed to execute 'openssl passwd -6 -salt <secret>  \"<secret>\"': $!\n";
+        die "Failed to execute 'openssl passwd -6 -salt \"$salt\" \"$password\"': $!\n";
     }
     chomp $hash;
     push @useradd_opts, ("-p", "'$hash'");

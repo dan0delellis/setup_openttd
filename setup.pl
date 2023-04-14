@@ -34,6 +34,9 @@ finish();
 
 sub cleanup_old {
     `userdel -r openttd 2> /dev/null`;
+    `rm /etc/systemd/system/openttd*.service`;
+    `systemctl daemon-reload`;
+    `rm -rf /etc/default/opentt.d`;
 }
 
 sub setup_user {
