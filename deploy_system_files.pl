@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+use strict;
+use warnings;
 use Getopt::Long;
 use Data::Dumper;
 use Storable qw ( thaw freeze );
@@ -7,10 +9,11 @@ use MIME::Base64;
 
 die "Must run as root\n" unless ($> == 0);
 
-my $seed_script = "/usr/local/bin/generate_seed.sh";
-my $def_seed = "/etc/default/opentt.d/openttd.seed";
-my $def_opt = "/etc/default/opentt.d/openttd.options";
-my $tmp_systemd = "/etc/systemd/system/openttd-dedicated.service.template";
+my $seed_script = "usr/local/bin/generate_seed.sh";
+my $def_seed = "etc/default/opentt.d/openttd.seed";
+my $def_opt = "etc/default/opentt.d/openttd.options";
+my $tmp_systemd = "etc/systemd/system/openttd-dedicated.service.template";
+my $defaults_path = "/etc/default/opentt.d/";
 
 my $enc_data;
 
@@ -43,19 +46,24 @@ die "Unable to determine game install directory\n" unless $GAME_INSTALL;
 
 my ($gen_file, $target) = generate_systemd($tmp_systemd,$deploy_root);
 
+my @cmds;
 #copy files in place
-`mkdir $defaults_path`;
-`mv $gen_file $target`;
+push @cmds, "mkdir $defaults_path";
+push @cmds, "mv $gen_file /$target";
 
 #defaults files
-`ln $deploy_root/$def_seed $def_seed`;
-`ln $deploy_root/$def_opt $def_seed`;
+push @cmds, "ln $deploy_root/$def_seed /$def_seed";
+push @cmds, "ln $deploy_root/$def_opt /$def_opt";
 
 #seed generator pre-exec script
-`ln $deploy_root/$seed_script $seed_script`;
+push @cmds, "ln $deploy_root/$seed_script /$seed_script";
 
 #systemd reload
-`systemctl daemon-reload`;
+push @cmds, "systemctl daemon-reload";
+
+foreach my $cmd (@cmds) {
+    run_cmd($cmd);
+}
 
 sub generate_systemd {
     my ($unit, $root) = @_;
@@ -75,4 +83,14 @@ sub generate_systemd {
     close $FH;
     close $src;
     return ($tmp, $target);
+}
+
+sub run_cmd {
+    my ($c) =  @_;
+    my @rt = `$c`;
+    my ($rv,$err) = ($?,$!);
+    if ($rv) {
+        $rv = $rv >> 8;
+        die "Error: got status $rv running \"$c\": $!\n";
+    }
 }
