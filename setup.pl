@@ -1,9 +1,12 @@
 #!/usr/bin/perl
 use Getopt::Long;
 use Data::Dumper;
-use Storable qw ( thaw  );
+use Storable qw ( thaw freeze );
 use MIME::Base64;
 #makes it easier to determine relative paths
+
+die "Must run as root\n" unless ($> == 0);
+
 my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
 
 #hashrefs for returned data from scripts
@@ -14,7 +17,17 @@ cleanup_old();
 
 $user_data = setup_user();
 $unpack_data = download_unpack();
-generate_system_conf();
+
+my %conf_data = (
+    username    => $user_data->{username},
+    exe_path    => $unpack_data->{game_path},
+    run_path    => $unpack_data->{extract_path},
+    deploy_source => "$gitroot/deploy",
+);
+
+my $conf_base64 = encode_base64 freeze(\%conf_data);
+
+generate_system_conf($conf_base64);
 
 
 finish();
@@ -43,7 +56,10 @@ sub download_unpack {
     return $y;
 }
 
-
+sub generate_system_conf {
+    my ($opt_data) = @_;
+    my $cmd = "$gitroot/deploy_system_files.pl --base64 $opt_data";
+}
 
 sub finish {
     print "Setup Complete!\n";
