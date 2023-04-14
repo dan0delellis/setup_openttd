@@ -1,8 +1,11 @@
 #!/usr/bin/perl
+use strict;
+use warnings;
 use Getopt::Long;
 use Data::Dumper;
 use Storable qw ( freeze  );
 use MIME::Base64;
+use List::Util qw/shuffle/;
 
 #makes it easier to determine relative paths
 my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
@@ -63,10 +66,14 @@ unless($no_pw) {
         die "You must install a version of openssl >= 1.1.1\n" .
         "If you are trying to install this on a distro that doesn't have that as a candidate I don't want to get my fingerprints on that trainwreck\n";
     }
-    my $salt = hungry_for_words(1);
-    #cursed
-    $salt = pop @$salt; chomp $salt;
-    $salt = encode_base64 $salt;
+               #  . / 0-9 , A-Z   ,   a-z
+    my @base64 = (46 .. 57, 65 .. 90, 97 .. 122);
+    my $mini_salt = chr($base64[rand 64]) . chr($base64[rand 64]);
+    my $salt_word = hungry_for_words(1);
+    $salt_word = join("", @$salt_word); chomp $salt_word;
+
+    my $salt = crypt($salt_word,$mini_salt);
+
     unless ($password) {
         $password = hungry_for_words(3);
 
@@ -97,13 +104,15 @@ unless($no_shell) {
 }
 
 `@useradd_opts`;
+my $rv = $?;
 if ($rv) {
-    $err = $!;
-    my $cmd = join(" ", @userad_opts);
+    my $err;
+    $err = $! if defined ($!);
+    my $cmd = join(" ", @useradd_opts);
     #"you should remove the hash from the command" Eh it failed.
     die "Failed to Execute '$cmd': $!\n";
 } else {
-    $dat = encode_base64 freeze($user_data);
+    my $dat = encode_base64 freeze($user_data);
     print $dat;
 }
 

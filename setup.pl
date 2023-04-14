@@ -62,6 +62,7 @@ sub download_unpack {
 sub generate_system_conf {
     my ($opt_data) = @_;
     my $cmd = "$gitroot/deploy_system_files.pl --base64 $opt_data";
+    `$cmd`;
 }
 
 sub finish {
