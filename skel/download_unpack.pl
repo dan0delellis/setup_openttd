@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use lib qw (mods/Cmd);
+use lib qw (PerlMods/Cmd);
 use Passwd qw(hungry_for_words);
 use Storable qw ( freeze );
 use MIME::Base64;
