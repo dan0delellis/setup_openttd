@@ -2,8 +2,8 @@
 [private]
 
 [network]
-client_name = <CLIENT DEFAULT>
-server_name = <SERVER DEFAULT>
+client_name = <CLIENT_DEFAULT>
+server_name = <SERVER_DEFAULT>
 connect_to_ip =
 last_joined =
 
