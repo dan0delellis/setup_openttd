@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use lib qw (mods/Cmd);
+use Passwd qw(hungry_for_words);
 use Storable qw ( freeze );
 use MIME::Base64;
 use Data::Dumper;
@@ -17,15 +19,38 @@ my $archive_regex = "openttd-[0-9\.]+-linux-generic";
 my $gfx_regex = "opengfx-[0-9\.]+-all.[a-zA-Z]+";
 my $bin_curl = "/usr/bin/curl -s -f ";
 my $bin_wget = "/usr/bin/wget -q ";
+my $install_dir = "~/.";
+my $config_root = "~/.config/openttd";
+my $conf_secret = "$config_root/secrets.cfg";
+my $conf_private = "$config_root/private.cfg";
+my $template_suf = ".orig";
 
 my ($archive_url, $latest_gfx, $gfx_url, $game_path, $gfx_path);
 my ($archive_fname, $gfx_fname);
 
+my ($SERVER_NAME, $SERVER_PASSWORD, $CLIENT_NAME);
+
+#GetOptions() goes here;
+
+unless (defined $SERVER_PASSWORD) {
+    $SERVER_PASSWORD = hungry_for_words(3);
+}
+unless (defined $SERVER_NAME) {
+    $SERVER_NAME = "The " . hungry_for_words(2) . "OpenTTD Server";
+    $SERVER_NAME =~ s/(\w+\S+\w*)/\u$1/g;
+}
+unless (defined $CLIENT_NAME) {
+    $CLIENT_NAME = "admin " . hungry_for_words(1);
+    $CLIENT_NAME =~ s/(\w+\S+\w*)/\u$1/g;
+}
+
+$return_data->{server_name} = $SERVER_NAME;
+$return_data->{server_password} = $SERVER_PASSWORD;
+$return_data->{client_name} = $CLIENT_NAME;
 
 $archive_url="http://10.1.0.4/openttd-13.0-linux-generic-amd64.tar.xz";
 $gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
-my $install_dir = "~/.";
 my $target_dir = do_cmd_oneline("realpath $install_dir");
 
 my $workdir = do_cmd_oneline("mktemp -d");
@@ -100,13 +125,14 @@ do_cmd("mv $game_path $target_dir");
 $return_data->{extract_path} = $target_dir . $game_dir;
 $return_data->{game_path} = do_cmd_oneline("find $return_data->{extract_path} -type f -executable");
 
-my $dat = encode_base64 freeze($return_data);
-print $dat;
+make_config($conf_secret,"$conf_secret.$template_suf");
+make_config($conf_private,"$conf_private.$template_suf");
 
 print "Cleaning up\n" if $debug;
 unlink $workdir;
-
 print "All Done!\n" if $debug;
+my $dat = encode_base64 freeze($return_data);
+print $dat;
 
 sub unpack_file {
     my ($f) = @_;
@@ -191,4 +217,20 @@ sub get_archive {
             return $line;
         }
     }
+}
+
+sub make_config {
+    my ($conf,$template) = @_;
+    open (my $src, "<", $template) or die "Unable to open template file $template: $!. Won't be able to generate config $conf.\n";
+    open ($FH, ">", $conf) or die "Unable to create config file $conf: $!\n";
+        while (my $line = <$src>) {
+        $line =~ s/<SERVER_PASSWORD>/$SERVER_PASSWORD/;
+        $line =~ s/<SERVER_DEFAULT>/$SERVER_NAME/;
+        $line =~ s/<CLIENT_DEFAULT>/$CLIENT_NAME/;
+
+        print $FH $line
+    }
+    close ($src);
+    close($FH);
+    chmod 0644, $conf;
 }
