@@ -8,14 +8,14 @@
 
 #systemd reads this file to get the seed to use for world generation
 #the world seed can any integer in the range [0,2^32 - 1]
-SEED_ENV_FILE="/etc/default/openttd.seed"
+SEED_ENV_FILE="/etc/default/opentt.d/openttd.seed"
 
-echo "#This was generated with $0" > $SEED_ENV_FILE 
+echo "#This was generated with $0" > $SEED_ENV_FILE
 
 #od is an octal dumper. This command reads 4 bytes (32 bits) from /dev/urandom and outputs them as a Double
 #there are easier ways to do this, like perl -e 'print int(rand((2**32)-1))', but this has MY NAME IN THE CLI
 SEED=$(/usr/bin/od --read-bytes=4 /dev/urandom -DAn)
 
-#If you want a constant SEED, set it below in place of $SEED. 
+#If you want a constant SEED, set it below in place of $SEED.
 #Or just comment out this line and put the seed in the other ENV file
-echo "CLI_SEED=\"dashG $SEED\"" >> $SEED_ENV_FILE
+echo "CLI_SEED=\" -G $SEED\"" >> $SEED_ENV_FILE
