@@ -54,3 +54,10 @@ The game does have an admin interface that I know nothing about. Right now I'd o
 I am EXTREMELY unfamiliar with OpenTTD. I wrote this because I got annoyed at the fact that I had to manually extract archives to exactly the right locations. If you're a sysadmin, you'd understand.
 
 Right now, only the individual subscripts are cofigurable. I'd like to make it so that setup.pl can take args and pass them to subscripts so that any aspect can be configured from the command line. But this started as a script to literally just 'download and unpack these archives' and then ballooned into a master's thesis in bad perl practices.
+
+## To Do
+* Restart the game on some schedule. Every Sunday night will likely be the default
+* Shuffle game settings on game start
+* Wipe savegames on game shuffle
+* Consolidate common commands into modules. I have like 50 different instances of do_cmd()
+* Make it detect the git root from outside the git repo
