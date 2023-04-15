@@ -81,6 +81,7 @@ sub generate_systemd {
         print Dumper $line;
     }
     close $FH;
+    chmod 0644, $tmp;
     close $src;
     return ($tmp, $target);
 }
