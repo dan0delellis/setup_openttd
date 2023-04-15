@@ -14,11 +14,12 @@ my $def_seed = "etc/default/opentt.d/openttd.seed";
 my $def_opt = "etc/default/opentt.d/openttd.options";
 my $tmp_systemd = "etc/systemd/system/openttd-dedicated.service.template";
 my $defaults_path = "/etc/default/opentt.d/";
+my $dict = "/usr/share/dict/words";
 
 my $enc_data;
 
 my ($deploy_root,$USER,$EXECUTABLE_PATH,$GAME_INSTALL);
-
+my ($SERVER_PASSWORD, $CLIENT_NAME, $SERVER_NAME);
 GetOptions (
     "deploy-root=s"     => \$deploy_root,
     "username=s"        => \$USER,
@@ -44,19 +45,20 @@ die "Unable to determine user to run service as\n" unless $USER;
 die "Unable to determine location of game executable\n" unless $EXECUTABLE_PATH;
 die "Unable to determine game install directory\n" unless $GAME_INSTALL;
 
-my ($gen_file, $target) = generate_systemd($tmp_systemd,$deploy_root);
-
 my @cmds;
-#copy files in place
-push @cmds, "mkdir $defaults_path";
+
+my ($gen_file, $target) = generate_systemd($tmp_systemd,$deploy_root);
 push @cmds, "mv $gen_file /$target";
 
+#copy files in place
+push @cmds, "mkdir $defaults_path";
+
 #defaults files
-push @cmds, "ln $deploy_root/$def_seed /$def_seed";
-push @cmds, "ln $deploy_root/$def_opt /$def_opt";
+push @cmds, "cp $deploy_root/$def_seed /$def_seed";
+push @cmds, "cp $deploy_root/$def_opt /$def_opt";
 
 #seed generator pre-exec script
-push @cmds, "ln $deploy_root/$seed_script /$seed_script";
+push @cmds, "cp $deploy_root/$seed_script /$seed_script";
 
 #systemd reload
 push @cmds, "systemctl daemon-reload";
@@ -86,6 +88,7 @@ sub generate_systemd {
     return ($tmp, $target);
 }
 
+
 sub run_cmd {
     my ($c) =  @_;
     my @rt = `$c`;
@@ -94,4 +97,5 @@ sub run_cmd {
         $rv = $rv >> 8;
         die "Error: got status $rv running \"$c\": $!\n";
     }
+    return @rt;
 }
