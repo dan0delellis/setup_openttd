@@ -59,6 +59,7 @@ push @cmds, "cp $deploy_root/$def_opt /$def_opt";
 
 #seed generator pre-exec script
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
+push @cmds, "/$seed_script";
 
 #systemd reload
 push @cmds, "systemctl daemon-reload";
