@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+
+use warnings;
 use Getopt::Long;
 use Data::Dumper;
 use Storable qw ( thaw freeze );
@@ -8,16 +10,15 @@ use MIME::Base64;
 die "Must run as root\n" unless ($> == 0);
 
 my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
+my $cleanup=1;
 
 #hashrefs for returned data from scripts
 my ($user_data,$unpack_data);
 
-
-cleanup_old();
+cleanup_old() if ($cleanup);
 
 $user_data = setup_user();
 $unpack_data = download_unpack();
-
 my %conf_data = (
     username    => $user_data->{username},
     exe_path    => $unpack_data->{game_path},
@@ -29,11 +30,11 @@ my $conf_base64 = encode_base64 freeze(\%conf_data);
 
 generate_system_conf($conf_base64);
 
-
 finish();
 
 sub cleanup_old {
     my @cmds = (
+	"killall -u openttd",
         "userdel -r openttd",
         "rm /etc/systemd/system/openttd*.service",
         "systemctl daemon-reload",
@@ -74,9 +75,16 @@ sub generate_system_conf {
 
 sub finish {
     print "Setup Complete!\n";
-    print "Unpacked to: $user_data->{home_directory}\n";
     print "Created User: $user_data->{username}\n";
-    print "Password: \'$user_data->{password}\'\n";
+    print "Password: \'$user_data->{password}\'. You can change it to your liking by running 'passwd $user_data->{username}'\n";
+    print "Unpacked to: $user_data->{home_directory}\n";
+    print "Server Name: \'$unpack_data->{server_name}\'. It can be changed by editing \'~$user_data->{username}/.config/openttd/private.cfg\' before starting the game\n";
+    print "Server Password: \'$unpack_data->{server_password}\'. It can be changed by editing \'~$user_data->{username}/.conf/openttd/secrets.cfg\' before starting the game\n";
+    print "Name of Local Client: \'$unpack_data->{client_name}\'. It can be changed by editing \'~$user_data->{username}/.conf/openttd/private.cfg\' before starting the game\n";
+
+    print "\n";
+    print "Start the server by executing 'sudo systemctl start openttd-dedicated.service'!\n";
+    print "Have fun!\n";
 }
 
 sub run_cmd_silent {
