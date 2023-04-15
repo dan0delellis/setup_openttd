@@ -129,7 +129,7 @@ make_config($conf_secret,"$conf_secret.$template_suf");
 make_config($conf_private,"$conf_private.$template_suf");
 
 print "Cleaning up\n" if $debug;
-unlink $workdir;
+`rm -rf $workdir`;
 print "All Done!\n" if $debug;
 my $dat = encode_base64 freeze($return_data);
 print $dat;
