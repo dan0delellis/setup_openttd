@@ -23,12 +23,15 @@ my $install_dir = "~/.";
 my $config_root = "~/.config/openttd";
 my $conf_secret = "$config_root/secrets.cfg";
 my $conf_private = "$config_root/private.cfg";
-my $template_suf = ".orig";
+my $template_suf = "orig";
 
 my ($archive_url, $latest_gfx, $gfx_url, $game_path, $gfx_path);
 my ($archive_fname, $gfx_fname);
 
 my ($SERVER_NAME, $SERVER_PASSWORD, $CLIENT_NAME);
+
+$archive_url="http://10.1.0.4/openttd-13.0-linux-generic-amd64.tar.xz";
+$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
 #GetOptions() goes here;
 
@@ -36,7 +39,7 @@ unless (defined $SERVER_PASSWORD) {
     $SERVER_PASSWORD = hungry_for_words(3);
 }
 unless (defined $SERVER_NAME) {
-    $SERVER_NAME = "The " . hungry_for_words(2) . "OpenTTD Server";
+    $SERVER_NAME = "The " . hungry_for_words(2) . " OpenTTD Server";
     $SERVER_NAME =~ s/(\w+\S+\w*)/\u$1/g;
 }
 unless (defined $CLIENT_NAME) {
@@ -47,9 +50,6 @@ unless (defined $CLIENT_NAME) {
 $return_data->{server_name} = $SERVER_NAME;
 $return_data->{server_password} = $SERVER_PASSWORD;
 $return_data->{client_name} = $CLIENT_NAME;
-
-$archive_url="http://10.1.0.4/openttd-13.0-linux-generic-amd64.tar.xz";
-$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
 my $target_dir = do_cmd_oneline("realpath $install_dir");
 
@@ -221,8 +221,13 @@ sub get_archive {
 
 sub make_config {
     my ($conf,$template) = @_;
+    $template = `realpath $template`; chomp $template;
+    unless (-f $template) {
+        die "$template is not an extant file\n";
+    }
+    $conf = `realpath $conf`; chomp $conf;
     open (my $src, "<", $template) or die "Unable to open template file $template: $!. Won't be able to generate config $conf.\n";
-    open ($FH, ">", $conf) or die "Unable to create config file $conf: $!\n";
+    open (my $FH, ">", $conf) or die "Unable to create config file $conf: $!\n";
         while (my $line = <$src>) {
         $line =~ s/<SERVER_PASSWORD>/$SERVER_PASSWORD/;
         $line =~ s/<SERVER_DEFAULT>/$SERVER_NAME/;
