@@ -126,6 +126,8 @@ do_cmd("mv $game_path $target_dir");
 $return_data->{extract_path} = $target_dir . $game_dir;
 $return_data->{game_path} = do_cmd_oneline("find $return_data->{extract_path} -type f -executable");
 
+first_run($return_data->{game_path});
+
 make_config($conf_secret,"$conf_secret.$template_suf");
 make_config($conf_private,"$conf_private.$template_suf");
 
@@ -230,13 +232,23 @@ sub make_config {
     open (my $src, "<", $template) or die "Unable to open template file $template: $!. Won't be able to generate config $conf.\n";
     open (my $FH, ">", $conf) or die "Unable to create config file $conf: $!\n";
         while (my $line = <$src>) {
-        $line =~ s/<SERVER_PASSWORD>/$SERVER_PASSWORD/;
-        $line =~ s/<SERVER_DEFAULT>/$SERVER_NAME/;
-        $line =~ s/<CLIENT_DEFAULT>/$CLIENT_NAME/;
+        $line =~ s/^(server_password)\s+(=.*)$/$1 = $SERVER_PASSWORD/;
+        $line =~ s/^(server_name)\s+(=.*)$/$1 = $SERVER_NAME/;
+        $line =~ s/^(client_name)\s+(=.*)$/$1 = $CLIENT_NAME/;
 
         print $FH $line
     }
     close ($src);
     close($FH);
     chmod 0644, $conf;
+}
+
+#First run isn't critical, but it allows the first the default config to get generated
+sub first_run {
+    my ($binary) = @_;
+    unless (-x $binary) {
+        return;
+    }
+
+
 }
