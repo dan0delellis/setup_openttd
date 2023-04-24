@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use SetupOpenTTD::Shortcuts qw(do_cmd do_cmd_topline);
+use SetupOpenTTD::Shortcuts qw(do_cmd do_cmd_topline contains);
 use MIME::Base64;
 use Data::Dumper;
 use Getopt::Long;
@@ -15,7 +15,7 @@ my $defaults;
 my $home        = $ENV{HOME};
 my $custom      = "$home/custom";
 my $opts_file   = "$home/custom_options.cfg";
-my $template    = "$home/.config/openttd/openttd.cfg";
+my $template    = "$home/.config/openttd/openttd.cfg.orig";
 my $target_file = "$custom/openttd.cfg.shuffled";
 
 GetOptions (
@@ -49,6 +49,10 @@ sub process_custom {
     my $dat;
     while (my $line=<$ro>) {
         my ($opt,$setting) = scan_line($line);
+        if (contains(\@protected, $opt)) {
+            print Dumper $opt;
+            next;
+        }
         if (defined $opt && defined $setting) {
             $dat->{$opt} = $setting;
         }
@@ -57,10 +61,10 @@ sub process_custom {
 }
 
 sub generate_conf {
-    my ($ro,$cfg) = @_;
+    my ($rc,$cfg) = @_;
     my @out;
 
-    while (my $line=<$ro>) {
+    while (my $line=<$rc>) {
         my ($k,$v) = scan_line($line);
 
         #Keep empty lines
