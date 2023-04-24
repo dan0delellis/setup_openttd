@@ -33,8 +33,8 @@ my ($archive_fname, $gfx_fname);
 my ($SERVER_NAME, $SERVER_PASSWORD, $CLIENT_NAME);
 
 #Local archives so I don't abuse server resources
-$archive_url="http://10.1.0.4/openttd-13.1-linux-generic-amd64.tar.xz";
-$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
+#$archive_url="http://10.1.0.4/openttd-13.1-linux-generic-amd64.tar.xz";
+#$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
 #GetOptions() goes here;
 
