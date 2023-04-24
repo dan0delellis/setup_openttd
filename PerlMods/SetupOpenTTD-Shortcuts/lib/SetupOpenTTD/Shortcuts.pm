@@ -1,84 +1,82 @@
+#!/usr/bin/perl
+
+package SetupOpenTTD;
 package SetupOpenTTD::Shortcuts;
 
-use 5.022001;
-use strict;
-use warnings;
-
 require Exporter;
+@ISA = qw(Exporter);
+@EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words contains);
 
-our @ISA = qw(Exporter);
+sub contains {
+    my ($arr, $str) = @_;
+    chomp $str;
+    foreach my $e (@$arr) {
+        chomp $e;
+        if ($str =~ m/^$e$/) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+sub do_cmd {
+    my ($cmd) = @_;
+    my @rt = `$cmd 2>&1`;
+    my $rv = $?;
 
-# This allows declaration	use SetupOpenTTD::Shortcuts ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+    return ($rv, \@rt);
+}
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+sub do_cmd_stdout {
+    my ($cmd) = @_;
+    my ($rv,$rt) = do_cmd($cmd);
+    $rt = join("",@$rt); chomp $rt;
+    return $rt;
+}
 
-our @EXPORT = qw(
-	
-);
+sub do_cmd_topline {
+    my ($cmd) = @_;
+    my ($rv,$rt) = do_cmd($cmd);
+    $rt = shift(@$rt);
+    chomp $rt;
+    return $rt;
+}
 
-our $VERSION = '0.01';
+sub do_cmd_silent {
+    my ($cmd) = @_;
+    my ($rv) = do_cmd("$cmd 2>1");
+    return $rv;
+}
 
+our $gitroot;
+my $x;
+($x,$gitroot) = do_cmd("git rev-parse --show-toplevel");
+$gitroot = pop @$gitroot; chomp $gitroot;
 
-# Preloaded methods go here.
+my $dict = "/usr/share/dict/words";
 
+sub hungry_for_words {
+    my ($count) = @_;
+    unless($count) {
+        $count=3;
+    }
+    unless ( -s $dict ) {
+        die "You must install the package 'wamerican', or any one of the following packages:\n" .
+        "\twamerican-huge wamerican-insane wamerican-large wamerican-small\n" .
+        "\twbritish wbritish-huge wbritish-insane wbritish-large wbritish-small\n" .
+        "\twcanadian wcanadian-huge wcanadian-insane wcanadian-large wcanadian-small\n";
+    }
+
+    #"Why don't you just use '[^a-z]'?" In the pbuilder I'm using to write this, grep includes accented vowels in a-z,
+    #potentially generating passwords that are impossible to type with a standard US keyboard.
+    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $dict | shuf -n$count`;
+
+    $words = join (" ", @tmp);
+    $words =~ s/[\s]+/ /g;
+    $words =~ s/(^\s+|\s+$)//g;
+    chomp $words;
+    $words = lc $words;
+
+    return $words;
+}
 1;
-__END__
-# Below is stub documentation for your module. You'd better edit it!
-
-=head1 NAME
-
-SetupOpenTTD::Shortcuts - Perl extension for blah blah blah
-
-=head1 SYNOPSIS
-
-  use SetupOpenTTD::Shortcuts;
-  blah blah blah
-
-=head1 DESCRIPTION
-
-Stub documentation for SetupOpenTTD::Shortcuts, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
-
-=head2 EXPORT
-
-None by default.
-
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
-
-=head1 AUTHOR
-
-dan, E<lt>dan@E<gt>
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2023 by dan
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.30.0 or,
-at your option, any later version of Perl 5 you may have available.
-
-
-=cut
