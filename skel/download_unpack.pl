@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use lib qw (PerlMods/Cmd);
-use Passwd qw(hungry_for_words);
+#use lib qw (PerlMods);
+use SetupOpenTTD::Shortcuts qw(hungry_for_words do_cmd_topline do_cmd_silent do_cmd do_cmd);
 use Storable qw ( freeze );
 use MIME::Base64;
 use Data::Dumper;
@@ -15,15 +15,17 @@ my $latest_url = $base_url . "openttd-releases/latest";
 #hashref to put stuff we care about. At this point, it will be the archive urls, the extracted path of the game, and the path of the executable
 my $return_data;
 
+my $home =          $ENV{HOME};
 my $archive_regex = "openttd-[0-9\.]+-linux-generic";
-my $gfx_regex = "opengfx-[0-9\.]+-all.[a-zA-Z]+";
-my $bin_curl = "/usr/bin/curl -s -f ";
-my $bin_wget = "/usr/bin/wget -q ";
-my $install_dir = "~/.";
-my $config_root = "~/.config/openttd";
-my $conf_secret = "$config_root/secrets.cfg";
-my $conf_private = "$config_root/private.cfg";
-my $template_suf = "orig";
+my $gfx_regex =     "opengfx-[0-9\.]+-all.[a-zA-Z]+";
+my $bin_curl =      "/usr/bin/curl -s -f ";
+my $bin_wget =      "/usr/bin/wget -q ";
+my $install_dir =   "$home/.";
+my $config_root =   "$home/.config/openttd";
+my $conf_game =     "$config_root/openttd.cfg";
+my $conf_secret =   "$config_root/secrets.cfg";
+my $conf_private =  "$config_root/private.cfg";
+my $template_suf =  "orig";
 
 my ($archive_url, $latest_gfx, $gfx_url, $game_path, $gfx_path);
 my ($archive_fname, $gfx_fname);
@@ -31,8 +33,8 @@ my ($archive_fname, $gfx_fname);
 my ($SERVER_NAME, $SERVER_PASSWORD, $CLIENT_NAME);
 
 #Local archives so I don't abuse server resources
-#$archive_url="http://10.1.0.4/openttd-13.0-linux-generic-amd64.tar.xz";
-#$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
+$archive_url="http://10.1.0.4/openttd-13.1-linux-generic-amd64.tar.xz";
+$gfx_url="http://10.1.0.4/opengfx-7.1-all.zip";
 
 #GetOptions() goes here;
 
@@ -52,15 +54,15 @@ $return_data->{server_name} = $SERVER_NAME;
 $return_data->{server_password} = $SERVER_PASSWORD;
 $return_data->{client_name} = $CLIENT_NAME;
 
-my $target_dir = do_cmd_oneline("realpath $install_dir");
+my $target_dir = do_cmd_topline("realpath $install_dir");
 
-my $workdir = do_cmd_oneline("mktemp -d");
+my $workdir = do_cmd_topline("mktemp -d");
 
 unless($archive_url && $gfx_url) {
     my $cmd = "$bin_curl $latest_url";
-    my @res = do_cmd($cmd);
+    my $res = do_cmd($cmd);
 
-    foreach my $line (@res) {
+    foreach my $line (@$res) {
         chomp $line;
         #Find url for archive, and the graphics url while we're at it
         next unless ($line =~ m/opengfx/ || $line =~ m/filename/ && $line =~ m/linux/);
@@ -118,21 +120,22 @@ $game_path = "$workdir/$game_dir";
 $gfx_path = "$game_path/baseset/";
 
 print "Copying graphics data into game path...\n" if $debug;
-do_cmd("ln $gfx_data/* $gfx_path/.");
+do_cmd_silent("ln $gfx_data/* $gfx_path/.");
 
 print "Moving game data to target location\n" if $debug;
-do_cmd("mv $game_path $target_dir");
+do_cmd_silent("mv $game_path $target_dir");
 
 $return_data->{extract_path} = $target_dir . $game_dir;
-$return_data->{game_path} = do_cmd_oneline("find $return_data->{extract_path} -type f -executable");
+$return_data->{game_path} = do_cmd_topline("find $return_data->{extract_path} -type f -executable");
 
 first_run($return_data->{game_path});
 
-make_config($conf_secret,"$conf_secret.$template_suf");
-make_config($conf_private,"$conf_private.$template_suf");
+make_config($conf_game);
+make_config($conf_secret);
+make_config($conf_private);
 
 print "Cleaning up\n" if $debug;
-`rm -rf $workdir`;
+do_cmd_silent("rm -rf $workdir");
 print "All Done!\n" if $debug;
 my $dat = encode_base64 freeze($return_data);
 print $dat;
@@ -144,23 +147,23 @@ sub unpack_file {
 
     print "Unpacking file $f....\n" if $debug ;
     if ($f =~ m/\.tar(\.[a-z]+)?$/) {
-        do_cmd("tar xf $f -C $workdir");
+        do_cmd_silent("tar xf $f -C $workdir");
         return
     }
     if ($f =~ m/\.zip$/) {
-        my $not_tarred = do_cmd("unzip -l $f | egrep -q '\.tar\$'");
+        my ($not_tarred, $out) = do_cmd("unzip -l $f | egrep -q '\.tar\$'");
         if (!$not_tarred) {
             print "oh boy it's a hidden tarball\n" if $debug;
-            do_cmd("unzip -p $f | tar x -C $workdir");
+            do_cmd_silent("unzip -p $f | tar x -C $workdir");
             die "$!" if $?;
         } else {
-            do_cmd("unzip $f -d $workdir");
+            do_cmd_silent("unzip $f -d $workdir");
         }
         return
     }
     if ($f =~ m/\.xz$/) {
         (my $x = $f) =~ s/\.xz$//;
-        do_cmd("unxz $f -c $workdir/$x");
+        do_cmd_silent("unxz $f -c $workdir/$x");
         return
     }
 }
@@ -169,7 +172,7 @@ sub pull_file {
     my ($url,$fname) = @_;
     print "downloading $url to $fname\n" if $debug;
     unless (-s $fname ) {
-        do_cmd("$bin_wget $url -P $workdir");
+        do_cmd_silent("$bin_wget $url -P $workdir");
         die "$! exit code $?" if $?;
     } else {
         print "File already exists. skipping. delete ./$fname if invalid\n" if $debug;
@@ -183,24 +186,6 @@ sub get_fname {
     my $fname = pop @parts;
     chomp $fname;
     return $fname;
-}
-
-sub do_cmd_oneline {
-    my ($cmd) = @_;
-    my @res = do_cmd($cmd);
-    my $line = pop @res;
-    chomp $line;
-    return $line;
-}
-
-sub do_cmd {
-    my ($cmd) = @_;
-    my @res = `$cmd`;
-    my $rv = $?;
-    if ($rv) {
-        die "failed to execute '$cmd'\n";
-    }
-    return @res;
 }
 
 sub extract_url {
@@ -223,15 +208,24 @@ sub get_archive {
 }
 
 sub make_config {
-    my ($conf,$template) = @_;
-    $template = `realpath $template`; chomp $template;
+    my ($conf) = @_;
+
+    my $template = "$conf.$template_suf";
+    my ($rv,$out) = do_cmd("mv $conf $template");
+
     unless (-f $template) {
         die "$template is not an extant file\n";
     }
-    $conf = `realpath $conf`; chomp $conf;
+    chmod 0444, $template;
+
+    if ($conf =~ m/openttd\.cfg$/) {
+        return
+    }
+
     open (my $src, "<", $template) or die "Unable to open template file $template: $!. Won't be able to generate config $conf.\n";
     open (my $FH, ">", $conf) or die "Unable to create config file $conf: $!\n";
-        while (my $line = <$src>) {
+
+    while (my $line = <$src>) {
         $line =~ s/^(server_password)\s+(=.*)$/$1 = $SERVER_PASSWORD/;
         $line =~ s/^(server_name)\s+(=.*)$/$1 = $SERVER_NAME/;
         $line =~ s/^(client_name)\s+(=.*)$/$1 = $CLIENT_NAME/;
@@ -243,12 +237,11 @@ sub make_config {
     chmod 0644, $conf;
 }
 
-#First run isn't critical, but it allows the first the default config to get generated
+#First run allows the first the default config files to get generated, that way they don't need to be included in the repo
 sub first_run {
     my ($binary) = @_;
     unless (-x $binary) {
         return;
     }
-
-
+    do_cmd_silent("timeout 2 $binary -D");
 }
