@@ -44,7 +44,7 @@ sub do_cmd_topline {
 
 sub do_cmd_silent {
     my ($cmd) = @_;
-    my ($rv) = do_cmd("$cmd 2>1");
+    my ($rv) = do_cmd("$cmd >/dev/null 2>&1");
     return $rv;
 }
 
