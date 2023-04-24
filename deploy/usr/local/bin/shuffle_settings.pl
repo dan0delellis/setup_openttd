@@ -50,7 +50,6 @@ sub process_custom {
     while (my $line=<$ro>) {
         my ($opt,$setting) = scan_line($line);
         if (contains(\@protected, $opt)) {
-            print Dumper $opt;
             next;
         }
         if (defined $opt && defined $setting) {
