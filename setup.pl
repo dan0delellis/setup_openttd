@@ -16,6 +16,7 @@ my $cleanup=1;
 my ($user_data,$unpack_data);
 
 cleanup_old() if ($cleanup);
+install_module();
 
 $user_data = setup_user();
 $unpack_data = download_unpack();
@@ -31,6 +32,22 @@ my $conf_base64 = encode_base64 freeze(\%conf_data);
 generate_system_conf($conf_base64);
 
 finish();
+
+
+sub install_module {
+    #Check to see if it's installed already
+    if (eval { require SetupOpenTTD::Shortcuts; 1 }) {
+        return
+    }
+
+    my $path = "$gitroot/PerlMods";
+    my $script = "$path/install.sh";
+    my $mod_path = "$path/SetupOpenTTD-Shortcuts/lib/SetupOpenTTD/";
+    my $rt = `$path`;
+    if ($?) {
+        die "Error trying to install perl modules this project relies on. Try installing it as desribed in $mod_path/README and running again"
+    }
+}
 
 sub cleanup_old {
     my @cmds = (

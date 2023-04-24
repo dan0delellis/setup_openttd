@@ -9,12 +9,14 @@ use MIME::Base64;
 
 die "Must run as root\n" unless ($> == 0);
 
-my $seed_script = "usr/local/bin/generate_seed.sh";
-my $def_seed = "etc/default/opentt.d/openttd.seed";
-my $def_opt = "etc/default/opentt.d/openttd.options";
-my $tmp_systemd = "etc/systemd/system/openttd-dedicated.service.template";
-my $defaults_path = "/etc/default/opentt.d/";
-my $dict = "/usr/share/dict/words";
+my $bin_root        = "usr/local/bin/";
+my $seed_script     = "$bin_root/generate_seed.sh";
+my $options_script  = "$bin_root/shuffle_settings.pl";
+my $def_seed        = "etc/default/opentt.d/openttd.seed";
+my $def_opt         = "etc/default/opentt.d/openttd.options";
+my $tmp_systemd     = "etc/systemd/system/openttd-dedicated.service.template";
+my $defaults_path   = "/etc/default/opentt.d/";
+my $dict            = "/usr/share/dict/words";
 
 my $enc_data;
 
@@ -59,6 +61,7 @@ push @cmds, "cp $deploy_root/$def_opt /$def_opt";
 
 #seed generator pre-exec script
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
+push @cmds, "cp $deploy_root/$options_script /$options_script";
 push @cmds, "/$seed_script";
 
 #systemd reload
