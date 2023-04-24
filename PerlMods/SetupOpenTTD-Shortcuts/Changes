@@ -1,0 +1,6 @@
+Revision history for Perl extension SetupOpenTTD::Shortcuts.
+
+0.01  Sun Apr 23 20:06:34 2023
+	- original version; created by h2xs 1.23 with options
+		-AX -n SetupOpenTTD::Shortcuts -b 5.22.1
+

@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/SetupOpenTTD-Shortcuts.t
+lib/SetupOpenTTD/Shortcuts.pm
