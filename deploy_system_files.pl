@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use SetupOpenTTD::Shortcuts qw(do_cmd do_cmd_topline);
 use Getopt::Long;
 use Data::Dumper;
 use Storable qw ( thaw freeze );
@@ -14,13 +15,14 @@ my $seed_script     = "$bin_root/generate_seed.sh";
 my $options_script  = "$bin_root/shuffle_settings.pl";
 my $def_seed        = "etc/default/opentt.d/openttd.seed";
 my $def_opt         = "etc/default/opentt.d/openttd.options";
+my $def_cli         = "etc/default/opentt.d/openttd.cli";
 my $tmp_systemd     = "etc/systemd/system/openttd-dedicated.service.template";
 my $defaults_path   = "/etc/default/opentt.d/";
 my $dict            = "/usr/share/dict/words";
 
 my $enc_data;
 
-my ($deploy_root,$USER,$EXECUTABLE_PATH,$GAME_INSTALL);
+my ($deploy_root,$USER,$EXECUTABLE_PATH,$GAME_INSTALL,$USER_HOME);
 my ($SERVER_PASSWORD, $CLIENT_NAME, $SERVER_NAME);
 GetOptions (
     "deploy-root=s"     => \$deploy_root,
@@ -35,11 +37,11 @@ my $conf;
 #If called from setup.pl, $conf will be a base64 data block that decodes/thaws to a hash
 if ($enc_data) {
     $conf = thaw (decode_base64 ($enc_data));
-
     $deploy_root = $conf->{deploy_source};
     $USER = $conf->{username};
     $GAME_INSTALL  = $conf->{run_path};
     $EXECUTABLE_PATH = $conf->{exe_path};
+    $USER_HOME = $conf->{user_home};
 }
 
 die "Unable to determine template file location\n" unless $deploy_root;
@@ -56,8 +58,13 @@ push @cmds, "mv $gen_file /$target";
 push @cmds, "mkdir $defaults_path";
 
 #defaults files
+
+#Write the location of the shuffled config file to a defaults file
+set_cli_opts("$deploy_root", "$def_cli");
+
 push @cmds, "cp $deploy_root/$def_seed /$def_seed";
 push @cmds, "cp $deploy_root/$def_opt /$def_opt";
+push @cmds, "cp $deploy_root/$def_cli /$def_cli";
 
 #seed generator pre-exec script
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
@@ -68,13 +75,30 @@ push @cmds, "/$seed_script";
 push @cmds, "systemctl daemon-reload";
 
 foreach my $cmd (@cmds) {
-    run_cmd($cmd);
+    my ($rv,$rt) = do_cmd($cmd);
+    if ($rv) {
+        print Dumper $rt;
+    }
+}
+
+sub set_cli_opts {
+    my ($src, $fn) = @_;
+    my $tmp = do_cmd_topline("mktemp");
+    open (my $ro, "<", "$src/$fn") or die "Unable to open \"$src/$fn to make defaults file:$!\n";
+    open (my $FH, ">", "$tmp") or die "Unable to open defaults file $fn: $!\n";
+    while (my $line = <$ro>) {
+        $line =~ s/<USER_HOME>/$USER_HOME/;
+        print $FH $line;
+    }
+    close $ro;
+    close $FH;
+    return $tmp;
 }
 
 sub generate_systemd {
     my ($unit, $root) = @_;
     (my $target = $unit) =~ s/.template//;
-    my $tmp = `mktemp`; chomp $tmp;
+    my $tmp = do_cmd_topline("mktemp");
     open (my $FH, ">", $tmp) or die "Unable to open temporary file for writes: $!\n";
     open (my $src, "<", "$root/$unit") or die "Unable to open systemd template file for reads: $!\n";
 
@@ -84,22 +108,9 @@ sub generate_systemd {
         $line =~ s/<EXECUTABLE_PATH>/$EXECUTABLE_PATH/;
 
         print $FH $line;
-        print Dumper $line;
     }
     close $FH;
     chmod 0644, $tmp;
     close $src;
     return ($tmp, $target);
-}
-
-
-sub run_cmd {
-    my ($c) =  @_;
-    my @rt = `$c`;
-    my ($rv,$err) = ($?,$!);
-    if ($rv) {
-        $rv = $rv >> 8;
-        die "Error: got status $rv running \"$c\": $!\n";
-    }
-    return @rt;
 }

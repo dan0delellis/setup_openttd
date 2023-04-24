@@ -8,13 +8,12 @@ use MIME::Base64;
 use Data::Dumper;
 use Getopt::Long;
 
-my $debug;
 my $base_url = "https://www.openttd.org/downloads/";
 my $latest_url = $base_url . "openttd-releases/latest";
 
 #hashref to put stuff we care about. At this point, it will be the archive urls, the extracted path of the game, and the path of the executable
 my $return_data;
-
+my $debug;
 my $home =          $ENV{HOME};
 my $archive_regex = "openttd-[0-9\.]+-linux-generic";
 my $gfx_regex =     "opengfx-[0-9\.]+-all.[a-zA-Z]+";
@@ -60,14 +59,13 @@ my $workdir = do_cmd_topline("mktemp -d");
 
 unless($archive_url && $gfx_url) {
     my $cmd = "$bin_curl $latest_url";
-    my $res = do_cmd($cmd);
+    my ($rv,$res) = do_cmd($cmd);
 
     foreach my $line (@$res) {
         chomp $line;
         #Find url for archive, and the graphics url while we're at it
         next unless ($line =~ m/opengfx/ || $line =~ m/filename/ && $line =~ m/linux/);
         #string manipulation for fun and profit
-
         $line = extract_url($line);
 
         if ($line =~ m/opengfx/) {
@@ -197,8 +195,8 @@ sub extract_url {
 
 sub get_archive {
     my ($url,$regex) = @_;
-    my @data = do_cmd("$bin_curl $url");
-    foreach my $line (@data) {
+    my ($rv,$data) = do_cmd("$bin_curl $url");
+    foreach my $line (@$data) {
         if ($line =~ m/https:\/\/.+$regex/) {
             $line = extract_url ($line);
             chomp $line;
@@ -216,7 +214,6 @@ sub make_config {
     unless (-f $template) {
         die "$template is not an extant file\n";
     }
-    chmod 0444, $template;
 
     if ($conf =~ m/openttd\.cfg$/) {
         return
@@ -239,9 +236,10 @@ sub make_config {
 
 #First run allows the first the default config files to get generated, that way they don't need to be included in the repo
 sub first_run {
+    print "Executing first run to generate configs. Should have an exit code of 124\n" if $debug;
     my ($binary) = @_;
     unless (-x $binary) {
         return;
     }
-    do_cmd_silent("timeout 2 $binary -D");
+    my $rv = do_cmd_silent("timeout 2 $binary -D");
 }

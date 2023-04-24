@@ -22,6 +22,7 @@ $user_data = setup_user();
 $unpack_data = download_unpack();
 my %conf_data = (
     username    => $user_data->{username},
+    user_home   => $user_data->{home_directory},
     exe_path    => $unpack_data->{game_path},
     run_path    => $unpack_data->{extract_path},
     deploy_source => "$gitroot/deploy",
