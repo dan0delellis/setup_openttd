@@ -5,9 +5,11 @@ use SetupOpenTTD::Shortcuts qw(do_cmd do_cmd_topline contains);
 use MIME::Base64;
 use Data::Dumper;
 use Getopt::Long;
+use List::Util qw(uniq);
 
 my @protected = qw(version_string version_number ini_version);
 my $meta_key = 'shuffler^constraints';
+my ($k_value,$k_sum,$k_range,$k_keypair,$k_wanted,$k_possible,$k_available) = qw(value sum range keypair want possible available);
 
 #Hashref containing data structure of the form
 # keyN => ('val' => x, 'range' => (a..b)), where
@@ -42,7 +44,7 @@ unless ($defaults) {
 }
 
 #Process constraint options
-foreach my $lim(@{$opts}->{$meta_key}) {
+foreach my $lim(@{$opts->{$meta_key}}) {
     process_lim($lim);
 }
 
@@ -64,18 +66,22 @@ sub process_custom {
     my ($ro) = @_;
     my $dat;
     while (my $line=<$ro>) {
+        chomp $line;
+        print Dumper "Read line: $line";
+        next if ($line =~ m/(^$|^#)/);
         my ($opt,$setting,$range,$meta) = scan_line($line);
         if (contains(\@protected, $opt)) {
             next;
         }
         if ($meta) {
             #We'll process the contraints after all the custom options have been generated
-            push @$dat->{$meta_key}, $meta;
+            push @{$dat->{$meta_key}}, $meta;
         }
         if (defined $opt && defined $setting) {
-            $dat->{$opt}->{val} = $setting;
+            $dat->{$opt}->{$k_value} = $setting;
+            print Dumper "name: $opt, setting: $setting, range: " . oneline_list($range);
             if (scalar @{$range} > 0) {
-                $dat->{$opt}->{range} = $range;
+                $dat->{$opt}->{$k_range} = $range;
             }
         }
     }
@@ -88,7 +94,7 @@ sub generate_conf {
     my %meta;
 
     while (my $line=<$rc>) {
-        my ($k,$v,$range) = scan_line($line);
+        my ($k,$v,$range,$meta) = scan_line($line);
 
         #Keep empty lines
         unless (defined $k && $k !~ m/^\s*$/) {
@@ -111,7 +117,7 @@ sub generate_conf {
 
         #If a custom option was configured, override the default
         if (exists $cfg->{$k} && defined $cfg->{$k}) {
-            $v = $cfg->{$k};
+            $v = $cfg->{$k}->{$k_value};
         }
 
         $line = "$k = $v";
@@ -123,12 +129,13 @@ sub generate_conf {
 
 sub scan_line {
     my ($li) = @_;
+    my $val;
     my $range;
+    my $meta;
 
     if ($li =~ m/(^#|^$)/) {
         return ($li);
     }
-    my $val;
     chomp $li;
     if ($li =~ m/;/) {
         my @parts = split(/;/, $li);
@@ -150,26 +157,34 @@ sub scan_line {
         #$k has no option set, $v and $range are both undefined
         return ($k);
     }
-
+    print Dumper "Processing configured setting '$v'";
     #if it gets to this point, we actually are trying to configure an option. possibly randomized, or a static setting
     if ($v =~ m/^\s*<\s*(\S+)\s*>\s*$/) {
+        my $rand = $1;
+        print Dumper "Looks like someone wants some randomness $rand";
         #randomly set option, range should be list of all possible values
-        ($val,$range) = process_random($1);
+        ($val,$range) = process_random($rand);
+        print Dumper "Got value $val and range: " . oneline_list($range);
     } else {
         #statically defined option, define it's range as ($v);
         $val = $v;
         push @$range, $v;
+        print Dumper "Value is statically set to $v, so range is: " . oneline_list($range);
     }
 
-    my $meta;
     #handle multi-option constraint lines: <shuffler.$option1+$option2> = <a..b>
     # the generated values for opt1,opt2, as well as their respective ranges, are required for validation,
     # but there's no gaurantee that those have been set yet in the custom options file.
     # So, those will have to wait until the options file is fully processed
     if ($k =~ m/^\s*<\s*shuffler\.\s*(\S+)\s*\+\s*(\S+)\s*>\s*$/i) {
         my ($opt1,$opt2) = sort ($1,$2);
-        $meta->{keypair} = ($opt1,$opt2);
-        $meta->{desired} = $range;
+        @{$meta->{$k_keypair}} = ($opt1,$opt2);
+        $meta->{$k_wanted} = $range;
+    }
+    print Dumper "is range still set?" . oneline_list($range);
+
+    if (!defined $meta) {
+        $meta = 0;
     }
 
     return ($k,$val,$range,$meta);
@@ -186,33 +201,42 @@ sub process_random {
     my ($l) = @_;
     my @arr;
 
+    print Dumper "working on line $l";
     #handle booleans
     if ($l =~ m/^bool(ean)?$/i) {
+        print Dumper "looks like a boolean opt";
         $l = "true,false";
     }
 
     #evaluate number range
     if ($l =~ m/([0-9]+)\.\.([0-9]+)/) {
+        print Dumper "looks like an int range";
         @arr = ($1 .. $2);
     }
 
     #evaluate lists
     if ($l =~ m/^[a-zA-Z0-9,]+$/) {
+        print Dumper "looks like a descrete list";
         @arr = split(/,/, $l);
     }
+
+    print Dumper "my range is: "  . oneline_list(\@arr);
 
     return ($arr[int rand (@arr)], \@arr);
 }
 
 sub process_lim {
-    #this doesn't do anything yet
     my ($h) = @_;
-    my ($a,$b) = @{$h->{keypair}};
-    my @r = @{$h->{desired}};
+    print Dumper "oh boy oh boy!";
+    my ($a,$b) = @{$h->{$k_keypair}};
+    my @r = @{$h->{$k_wanted}};
+    print Dumper "$k_wanted: " . oneline_list(\@r);
 
     #First get the ranges allowed from the config
-    my @ra = @{$opts->{$a}->{range}};
-    my @rb = @{$opts->{$b}->{range}};
+    my @ra = @{$opts->{$a}->{$k_range}};
+    my @rb = @{$opts->{$b}->{$k_range}};
+    print Dumper "$a: " . oneline_list(\@ra);
+    print Dumper "$b: " . oneline_list(\@rb);
 
     #Force them both to be defined
     #~later~~
@@ -224,46 +248,46 @@ sub process_lim {
         }
     }
     @possible = uniq @possible;
+    print Dumper "all possible sums: " . oneline_list(\@possible);
 
-    my %tmp;
-    my $t = \%tmp;
-
-    $t->{'possible'} = \@possible;
-    $t->{'generated'} = $opts->{$a}->{'val'} + $opts->{$b}->{'val'};
+    $h->{$k_possible} = \@possible;
+    $h->{$k_sum} = $opts->{$a}->{$k_value} + $opts->{$b}->{$k_value};
+    print Dumper "got sum: $h->{$k_sum}";
 
     #Find the intersection of the two
     #considered forcing one to be a subset of the other but it was a pain to decide which should be the superset
 
-    my @avail = intersect($t->{want},$t->{possible});
+    my @avail = intersect($h->{$k_wanted},$h->{$k_possible});
+    print Dumper "got intersection: " . oneline_list(\@avail);
 
     #If this is an empty list, force both values to be whatever the first value in the range is for both lists
     #~later~~
 
-    $t->{'available'} = \@avail;
-    $t->{'success'} = 0;
+    $h->{$k_available} = \@avail;
+    #$succss = 0;
 
     #Is what got generated a desired result?
-    if (i_elementof_J($t->{'generated'},$t->{'available'})) {
-        $t->{'success'} += 1;
+    if (i_elementof_J($h->{$k_sum},$h->{$k_available})) {
+        #$succss += 1;
         return;
     }
 
     #If I keep my value of 'a', can I get a valid value for 'b'?
-    my @rb_reduced = I_reduceby_j($t->{'available'},$opts->{$a}->{"val"});
+    my @rb_reduced = I_reduceby_j($h->{$k_available},$opts->{$a}->{$k_value});
 
     @rb_reduced = intersect(\@rb_reduced,\@rb);
     if (scalar @rb_reduced > 0) {
-        $opts->{$b}->{'val'} = $rb_reduced[rand scalar @rb_reduced];
-        $t->{'success'} += 2;
+        $opts->{$b}->{$k_value} = $rb_reduced[rand scalar @rb_reduced];
+        #$succss += 2;
         return;
     }
 
     #Let's do the same for a
-    my @ra_reduced = I_reduceby_j($t->{'available'},$opts->{$b}->{'val'});
+    my @ra_reduced = I_reduceby_j($h->{$k_available},$opts->{$b}->{$k_value});
     @ra_reduced = intersect(\@ra_reduced,\@ra);
     if (scalar @ra_reduced > 0) {
-        $opts->{$a}->{'val'} = $ra_reduced[rand scalar @ra_reduced];
-        $t->{'success'} += 4;
+        $opts->{$a}->{$k_value} = $ra_reduced[rand scalar @ra_reduced];
+        #$succss += 4;
         return;
     }
 
@@ -271,13 +295,13 @@ sub process_lim {
     #This means we need to reshuffle, but even that has a chance of failure, if the above is true
     #We already determined that there is a valid set of available sums, so let's iterate through those
     #And then find an A/B pair that fits
-    foreach my $forced_sum @{$t->{'available'}} {
+    foreach my $forced_sum (@{$h->{$k_available}}) {
         foreach my $m(reverse @ra) {
             my $n = $forced_sum - $m;
             if (i_elementof_J($n,\@rb)) {
-                $opts->{$a}->{val} = $m;
-                $opts->{$b}->{val} = $n;
-                $t->{'success'} += 8;
+                $opts->{$a}->{$k_value} = $m;
+                $opts->{$b}->{$k_value} = $n;
+                #$succss += 8;
                 return;
             }
         }
@@ -285,9 +309,9 @@ sub process_lim {
         foreach my $n(reverse @rb) {
             my $m = $forced_sum -$n;
             if (i_elementof_J($m,\@ra)) {
-                $opts->{$a}->{val} = $m;
-                $opts->{$b}->{val} = $n;
-                $t->{'success'} += 16;
+                $opts->{$a}->{$k_value} = $m;
+                $opts->{$b}->{$k_value} = $n;
+                #$succss += 16;
                 return;
             }
         }
@@ -297,13 +321,14 @@ sub process_lim {
     #Defined as the list of sum values that are possible intersected with sum values that are desired
     print "Error processing key pair constraint:" . join("+",$a,$b) . "\n";
     print "Unable to generate a pair of values that satisfy requested sum range that also satisfies individual ranges for $a and $b.\n";
-    print "Defined range for $a: ". join(",",@ra) . "\n";
-    print "Defined rbnge for $b: ". join(",",@rb) . "\n";
-    print "Possible sum range: " . join(",",@possible) . "\n";
-    print "Requested sum range: " . join(",",@r) . "\n";
-    print "Intersection of possible ^ requested: " . join(",",@avail) "\n";
+    print "Defined range for $a: ". oneline_list(\@ra) . "\n";
+    print "Defined rbnge for $b: ". oneline_list(\@rb) . "\n";
+    print "Possible sum range: " . oneline_list(\@possible) . "\n";
+    print "Requested sum range: " . oneline_list(\@r) . "\n";
+    print "Intersection of possible ^ requested: " . oneline_list(\@avail) . "\n";
     print "This kind of error shouldn't be possible but the world is full of surprises\n";
-    print "Keeping initially  generated values for $a,$b\n";
+    print "Keeping initially generated values for $a,$b\n";
+    exit 1;
 }
 
 sub I_reduceby_j {
@@ -327,6 +352,8 @@ sub i_elementof_J {
 
 sub intersect {
     my ($i, $j) = @_;
+    print Dumper $i;
+    print Dumper $j;
 
     my @int;
     foreach my $ii (@{$i}) {
@@ -337,4 +364,8 @@ sub intersect {
         }
     }
     return @int;
+}
+sub oneline_list {
+    my ($l) = @_;
+    return join(",",@{$l});
 }
