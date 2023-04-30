@@ -10,6 +10,7 @@ use List::Util qw(uniq);
 my @protected = qw(version_string version_number ini_version);
 my $meta_key = 'shuffler^constraints';
 my ($k_value,$k_sum,$k_range,$k_keypair,$k_wanted,$k_possible,$k_available) = qw(value sum range keypair want possible available);
+my $debug;
 
 #Hashref containing data structure of the form
 # keyN => ('val' => x, 'range' => (a..b)), where
@@ -67,7 +68,7 @@ sub process_custom {
     my $dat;
     while (my $line=<$ro>) {
         chomp $line;
-        print Dumper "Read line: $line";
+        print Dumper "Read line: $line" if $debug;
         next if ($line =~ m/(^$|^#)/);
         my ($opt,$setting,$range,$meta) = scan_line($line);
         if (contains(\@protected, $opt)) {
@@ -79,7 +80,7 @@ sub process_custom {
         }
         if (defined $opt && defined $setting) {
             $dat->{$opt}->{$k_value} = $setting;
-            print Dumper "name: $opt, setting: $setting, range: " . oneline_list($range);
+            print Dumper "name: $opt, setting: $setting, range: " . oneline_list($range) if $debug;
             if (scalar @{$range} > 0) {
                 $dat->{$opt}->{$k_range} = $range;
             }
@@ -157,19 +158,19 @@ sub scan_line {
         #$k has no option set, $v and $range are both undefined
         return ($k);
     }
-    print Dumper "Processing configured setting '$v'";
+    print Dumper "Processing configured setting '$v'" if $debug;
     #if it gets to this point, we actually are trying to configure an option. possibly randomized, or a static setting
     if ($v =~ m/^\s*<\s*(\S+)\s*>\s*$/) {
         my $rand = $1;
-        print Dumper "Looks like someone wants some randomness $rand";
+        print Dumper "Looks like someone wants some randomness $rand" if $debug;
         #randomly set option, range should be list of all possible values
         ($val,$range) = process_random($rand);
-        print Dumper "Got value $val and range: " . oneline_list($range);
+        print Dumper "Got value $val and range: " . oneline_list($range) if $debug;
     } else {
         #statically defined option, define it's range as ($v);
         $val = $v;
         push @$range, $v;
-        print Dumper "Value is statically set to $v, so range is: " . oneline_list($range);
+        print Dumper "Value is statically set to $v, so range is: " . oneline_list($range) if $debug;
     }
 
     #handle multi-option constraint lines: <shuffler.$option1+$option2> = <a..b>
@@ -181,7 +182,7 @@ sub scan_line {
         @{$meta->{$k_keypair}} = ($opt1,$opt2);
         $meta->{$k_wanted} = $range;
     }
-    print Dumper "is range still set?" . oneline_list($range);
+    print Dumper "is range still set?" . oneline_list($range) if $debug;
 
     if (!defined $meta) {
         $meta = 0;
@@ -201,42 +202,42 @@ sub process_random {
     my ($l) = @_;
     my @arr;
 
-    print Dumper "working on line $l";
+    print Dumper "working on line $l" if $debug;
     #handle booleans
     if ($l =~ m/^bool(ean)?$/i) {
-        print Dumper "looks like a boolean opt";
+        print Dumper "looks like a boolean opt" if $debug;
         $l = "true,false";
     }
 
     #evaluate number range
     if ($l =~ m/([0-9]+)\.\.([0-9]+)/) {
-        print Dumper "looks like an int range";
+        print Dumper "looks like an int range" if $debug;
         @arr = ($1 .. $2);
     }
 
     #evaluate lists
     if ($l =~ m/^[a-zA-Z0-9,]+$/) {
-        print Dumper "looks like a descrete list";
+        print Dumper "looks like a descrete list" if $debug;
         @arr = split(/,/, $l);
     }
 
-    print Dumper "my range is: "  . oneline_list(\@arr);
+    print Dumper "my range is: "  . oneline_list(\@arr) if $debug;
 
     return ($arr[int rand (@arr)], \@arr);
 }
 
 sub process_lim {
     my ($h) = @_;
-    print Dumper "oh boy oh boy!";
+    print Dumper "oh boy oh boy!" if $debug;
     my ($a,$b) = @{$h->{$k_keypair}};
     my @r = @{$h->{$k_wanted}};
-    print Dumper "$k_wanted: " . oneline_list(\@r);
+    print Dumper "$k_wanted: " . oneline_list(\@r) if $debug;
 
     #First get the ranges allowed from the config
     my @ra = @{$opts->{$a}->{$k_range}};
     my @rb = @{$opts->{$b}->{$k_range}};
-    print Dumper "$a: " . oneline_list(\@ra);
-    print Dumper "$b: " . oneline_list(\@rb);
+    print Dumper "$a: " . oneline_list(\@ra) if $debug;
+    print Dumper "$b: " . oneline_list(\@rb) if $debug;
 
     #Force them both to be defined
     #~later~~
@@ -248,17 +249,17 @@ sub process_lim {
         }
     }
     @possible = uniq @possible;
-    print Dumper "all possible sums: " . oneline_list(\@possible);
+    print Dumper "all possible sums: " . oneline_list(\@possible) if $debug;
 
     $h->{$k_possible} = \@possible;
     $h->{$k_sum} = $opts->{$a}->{$k_value} + $opts->{$b}->{$k_value};
-    print Dumper "got sum: $h->{$k_sum}";
+    print Dumper "got sum: $h->{$k_sum}" if $debug;
 
     #Find the intersection of the two
     #considered forcing one to be a subset of the other but it was a pain to decide which should be the superset
 
     my @avail = intersect($h->{$k_wanted},$h->{$k_possible});
-    print Dumper "got intersection: " . oneline_list(\@avail);
+    print Dumper "got intersection: " . oneline_list(\@avail) if $debug;
 
     #If this is an empty list, force both values to be whatever the first value in the range is for both lists
     #~later~~
@@ -352,8 +353,8 @@ sub i_elementof_J {
 
 sub intersect {
     my ($i, $j) = @_;
-    print Dumper $i;
-    print Dumper $j;
+    print Dumper $i if $debug;
+    print Dumper $j if $debug;
 
     my @int;
     foreach my $ii (@{$i}) {
