@@ -51,7 +51,7 @@ Note that this requires you to define the ranges of the two options you want to 
 
 Currently it only supports addition, but I suppose there's nothing stopping me from implementing any inversible binary operation. It will only ever support two options per contraint though.
 
-####Example:
+#### Example:
 
     map_x = <8..12> ; map_x will be between 8 and 12
     map_y = <6..10> ; map_y will be between 6 and 10
@@ -62,7 +62,7 @@ Multi-option constraints are processed after all normal options generated. A mul
 
 While there is nothing stopping you from using the same option in multiple constraints, doing so may have unintended consequences.
 
-####Example:
+#### Example:
 
     map_x = <6..12>
     map_y = <6..12>
