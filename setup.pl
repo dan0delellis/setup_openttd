@@ -11,7 +11,7 @@ die "Must run as root\n" unless ($> == 0);
 
 my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
 my $cleanup=1;
-
+my $shuffle_conf = "custom_options.cfg";
 #hashrefs for returned data from scripts
 my ($user_data,$unpack_data);
 
@@ -71,6 +71,9 @@ sub setup_user {
         die "Failed to execute user creation script: $!\n";
     }
     $x =  thaw (decode_base64 $x ) ;
+
+    #make a symlink for the config in current users's home
+    `ln -s $x->{home_directory}/$shuffle_conf ~/.`;
     return $x;
 }
 
@@ -101,6 +104,7 @@ sub finish {
     print "Name of Local Client: \'$unpack_data->{client_name}\'. It can be changed by editing \'~$user_data->{username}/.conf/openttd/private.cfg\' before starting the game\n";
 
     print "\n";
+    print "You can customize the server options by editing ~/$shuffle_conf, which is a symlink to $user_data->{home_directory}/$shuffle_conf\n";
     print "Start the server by executing 'sudo systemctl start openttd-dedicated.service'!\n";
     print "Have fun!\n";
 }
