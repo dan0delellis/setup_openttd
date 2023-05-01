@@ -6,6 +6,7 @@ use Data::Dumper;
 use Storable qw ( freeze  );
 use MIME::Base64;
 use List::Util qw/shuffle/;
+use SetupOpenTTD::Shortcuts qw(hungry_for_words);
 
 #makes it easier to determine relative paths
 my $gitroot = `git rev-parse --show-toplevel`; chomp $gitroot;
@@ -114,24 +115,4 @@ if ($rv) {
 } else {
     my $dat = encode_base64 freeze($user_data);
     print $dat;
-}
-
-sub hungry_for_words {
-    my ($count) = @_;
-    unless($count) {
-        $count=3;
-    }
-    unless ( -s $dict ) {
-        die "You must either provide a password with --password or install the package 'wamerican', or any one of the following packages:\n" .
-        "\twamerican-huge wamerican-insane wamerican-large wamerican-small\n" .
-        "\twbritish wbritish-huge wbritish-insane wbritish-large wbritish-small\n" .
-        "\twcanadian wcanadian-huge wcanadian-insane wcanadian-large wcanadian-small\n" .
-        "\twbrazilian wbulgarian wcatalan wdanish wdutch wesperanto wfaroese wfrench wgalician-minimos wgerman-medical witalian wngerman wnorwegian wogerman wpolish wportuguese wspanish wswedish wswiss wukrainian\n";
-    }
-
-    #"Why don't you just use '[^a-z]'?" In the pbuilder I'm using to write this, grep includes accented vowels in a-z,
-    #potentially generating passwords that are impossible to type with a standard US keyboard.
-    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $dict | shuf -n$count`;
-
-    return \@tmp;
 }
