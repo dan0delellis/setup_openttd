@@ -2,6 +2,8 @@
 
 package SetupOpenTTD;
 package SetupOpenTTD::Shortcuts;
+our $VERSION = 0.0.1;
+our $ABSTRACT = "Collection of subfunctions i find myself using frequently. There are probably modules that do them better.";
 
 require Exporter;
 @ISA = qw(Exporter);

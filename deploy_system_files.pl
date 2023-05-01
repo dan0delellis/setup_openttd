@@ -18,7 +18,7 @@ my $def_opt         = "etc/default/opentt.d/openttd.options";
 my $def_cli         = "etc/default/opentt.d/openttd.cli";
 my $tmp_systemd     = "etc/systemd/system/openttd-dedicated.service.template";
 my $defaults_path   = "/etc/default/opentt.d/";
-my $cron_path       = "etc/cron.d/restart_reshuffle_openttd";
+my $cron_file       = "etc/cron.d/restart_reshuffle_openttd";
 my $dict            = "/usr/share/dict/words";
 
 my $enc_data;

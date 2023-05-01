@@ -44,7 +44,7 @@ sub install_module {
     my $path = "$gitroot/PerlMods";
     my $script = "$path/install.sh";
     my $mod_path = "$path/SetupOpenTTD-Shortcuts/lib/SetupOpenTTD/";
-    my $rt = `$path`;
+    my $rt = `$script`;
     if ($?) {
         die "Error trying to install perl modules this project relies on. Try installing it as desribed in $mod_path/README and running again"
     }
