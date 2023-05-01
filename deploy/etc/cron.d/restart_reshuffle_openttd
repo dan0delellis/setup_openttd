@@ -1,0 +1,1 @@
+30 3 * * 0 root /usr/bin/systemctl restart openttd-dedicated.service
