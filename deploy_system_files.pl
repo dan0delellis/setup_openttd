@@ -18,6 +18,7 @@ my $def_opt         = "etc/default/opentt.d/openttd.options";
 my $def_cli         = "etc/default/opentt.d/openttd.cli";
 my $tmp_systemd     = "etc/systemd/system/openttd-dedicated.service.template";
 my $defaults_path   = "/etc/default/opentt.d/";
+my $cron_path       = "etc/cron.d/restart_reshuffle_openttd";
 my $dict            = "/usr/share/dict/words";
 
 my $enc_data;
@@ -69,6 +70,7 @@ push @cmds, "cp $deploy_root/$def_cli /$def_cli";
 #seed generator pre-exec script
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
 push @cmds, "cp $deploy_root/$options_script /$options_script";
+push @cmds, "cp $deploy_root/$cron_file /$cron_file";
 push @cmds, "/$seed_script";
 
 #systemd reload
