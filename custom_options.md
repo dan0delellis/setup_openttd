@@ -44,6 +44,7 @@ For true/false options, you can list them as `<true,false>` like a normal listed
 	bribe = <bool>
 	bribe = <true,false>
 Both of these will have the same effect of randomly selecting `true` or `false` for the bribary setting
+
 ### Multi-Option Contraints
 This only works for numeric options. If you want the sum of two options to be limited, you can define that by enclosing in angle brackets an option of the form 'shuffler.opt_1+opt_2' and then the desired value for the sum of those two options.
 Note that this requires you to define the ranges of the two options you want to adjust for. If you try to limit two unconfigured options, it will just cause the shuffler to crash. It also requires that there be some overlap between what sum you want and what sums are actually possible.
@@ -51,6 +52,7 @@ Note that this requires you to define the ranges of the two options you want to 
 Currently it only supports addition, but I suppose there's nothing stopping me from implementing any inversible binary operation. It will only ever support two options per contraint though.
 
 ####Example:
+
     map_x = <8..12> ; map_x will be between 8 and 12
     map_y = <6..10> ; map_y will be between 6 and 10
     <shuffler.map_x+map_y> = <18..24> ; If the generated value of map_x + map_y is not between 18 and 24, one or both options will be reshuffled
