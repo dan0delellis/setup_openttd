@@ -68,7 +68,6 @@ sub hungry_for_words {
         "\twbritish wbritish-huge wbritish-insane wbritish-large wbritish-small\n" .
         "\twcanadian wcanadian-huge wcanadian-insane wcanadian-large wcanadian-small\n";
     }
-
     #"Why don't you just use '[^a-z]'?" In the pbuilder I'm using to write this, grep includes accented vowels in a-z,
     #potentially generating passwords that are impossible to type with a standard US keyboard.
     my $words = gib_words($count,$dict);
@@ -78,22 +77,23 @@ sub hungry_for_words {
 sub hungry_for_worms {
     my ($count) = @_;
     my $wordfile = "$gitroot/exclusively_british_words";
+    my $words;
     unless (-s $wordfile) {
-        return hungry_for_words($count);
+        $words = hungry_for_words($count);
     }
-    return gib_words($count,$wordfile);
+    $words = gib_words($count,$wordfile);
+    return $words;
 }
 
 sub gib_words {
     my ($c,$f) = @_;
-
-    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $f | shuf -n$c`;
-    $words = join (" ", @tmp);
+    my $cmd = 'egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" ' . $f . ' | shuf -n' . "$c";
+    my ($rv,$tmp) = do_cmd($cmd);
+    $words = join (" ", @{$tmp});
     $words =~ s/[\s]+/ /g;
     $words =~ s/(^\s+|\s+$)//g;
     chomp $words;
     $words = lc $words;
-
     return $words;
 }
 1;
