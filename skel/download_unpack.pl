@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 #use lib qw (PerlMods);
-use SetupOpenTTD::Shortcuts qw(hungry_for_words do_cmd_topline do_cmd_silent do_cmd do_cmd);
+use SetupOpenTTD::Shortcuts qw(hungry_for_words hungry_for_worms do_cmd_topline do_cmd_silent do_cmd do_cmd);
 use Storable qw ( freeze );
 use MIME::Base64;
 use Data::Dumper;
@@ -41,11 +41,11 @@ unless (defined $SERVER_PASSWORD) {
     $SERVER_PASSWORD = hungry_for_words(3);
 }
 unless (defined $SERVER_NAME) {
-    $SERVER_NAME = "The " . hungry_for_words(2) . " OpenTTD Server";
+    $SERVER_NAME = "The " . hungry_for_worms(2) . " OpenTTD Server";
     $SERVER_NAME =~ s/(\w+\S+\w*)/\u$1/g;
 }
 unless (defined $CLIENT_NAME) {
-    $CLIENT_NAME = "admin " . hungry_for_words(1);
+    $CLIENT_NAME = "admin " . hungry_for_worms(1);
     $CLIENT_NAME =~ s/(\w+\S+\w*)/\u$1/g;
 }
 
