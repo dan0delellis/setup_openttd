@@ -7,7 +7,7 @@ our $ABSTRACT = "Collection of subfunctions i find myself using frequently. Ther
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words hungry_for_worms contains);
+@EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words contains);
 
 sub contains {
     my ($arr, $str) = @_;
@@ -71,23 +71,8 @@ sub hungry_for_words {
 
     #"Why don't you just use '[^a-z]'?" In the pbuilder I'm using to write this, grep includes accented vowels in a-z,
     #potentially generating passwords that are impossible to type with a standard US keyboard.
-    my $words = gib_words($count,$dict);
-    return $words;
-}
+    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $dict | shuf -n$count`;
 
-sub hungry_for_worms {
-    my ($count) = @_;
-    my $wordfile = "$gitroot/extremely_british_words";
-    unless (-s $words) {
-        return hungry_for_words($count);
-    }
-    return gib_words($count,$wordfile);
-}
-
-sub gib_words {
-    my ($c,$f) = @_;
-
-    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $f | shuf -n$c`;
     $words = join (" ", @tmp);
     $words =~ s/[\s]+/ /g;
     $words =~ s/(^\s+|\s+$)//g;
