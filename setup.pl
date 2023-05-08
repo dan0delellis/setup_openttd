@@ -5,6 +5,7 @@ use Getopt::Long;
 use Data::Dumper;
 use Storable qw ( thaw freeze );
 use MIME::Base64;
+use SetupOpenTTD::Shortcuts qw(do_cmd_silent);
 #makes it easier to determine relative paths
 
 die "Must run as root\n" unless ($> == 0);
@@ -61,27 +62,27 @@ sub cleanup_old {
     );
 
     foreach my $cmd (@cmds) {
-        run_cmd_silent($cmd);
+        do_cmd_silent($cmd);
     }
 }
 
 sub setup_user {
     my $x=`$gitroot/create_user.pl`;
-    if ($rv) {
+    if ($?) {
+	print Dumper "got exit code $?, $!";
         die "Failed to execute user creation script: $!\n";
     }
-    $x =  thaw (decode_base64 $x ) ;
-
+    my $y =  thaw (decode_base64 $x ) ;
     #make a symlink for the config in current users's home
-    `ln -s $x->{home_directory}/$shuffle_conf ~/.`;
-    return $x;
+    do_cmd_silent("ln -fs $y->{home_directory}/$shuffle_conf ~/.");
+    return $y;
 }
 
 sub download_unpack {
     my $cmd = "$user_data->{home_directory}/download_unpack.pl";
 
     my $y = `su $user_data->{username} -c "$cmd"`;
-    if ($rv) {
+    if ($?) {
         die "Failed to run '$cmd': $!\n";
     }
     $y = thaw (decode_base64 $y);
@@ -91,7 +92,7 @@ sub download_unpack {
 sub generate_system_conf {
     my ($opt_data) = @_;
     my $cmd = "$gitroot/deploy_system_files.pl --base64 '$opt_data'";
-    `$cmd`;
+    do_cmd_silent($cmd);
 }
 
 sub finish {
@@ -107,9 +108,4 @@ sub finish {
     print "You can customize the server options by editing ~/$shuffle_conf, which is a symlink to $user_data->{home_directory}/$shuffle_conf\n";
     print "Start the server by executing 'sudo systemctl start openttd-dedicated.service'!\n";
     print "Have fun!\n";
-}
-
-sub run_cmd_silent {
-    my ($c) = @_;
-    `$c 2> /dev/null`;
 }
