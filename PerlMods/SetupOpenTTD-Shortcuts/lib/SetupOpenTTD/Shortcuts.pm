@@ -2,17 +2,10 @@
 
 package SetupOpenTTD;
 package SetupOpenTTD::Shortcuts;
-our $VERSION = 0.0.1;
-our $ABSTRACT = "Collection of subfunctions i find myself using frequently. There are probably modules that do them better.";
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words hungry_for_worms contains);
-
-our $gitroot;
-my $x;
-($x,$gitroot) = do_cmd("git rev-parse --show-toplevel");
-$gitroot = pop @$gitroot; chomp $gitroot;
+@EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words contains);
 
 sub contains {
     my ($arr, $str) = @_;
@@ -55,6 +48,11 @@ sub do_cmd_silent {
     return $rv;
 }
 
+our $gitroot;
+my $x;
+($x,$gitroot) = do_cmd("git rev-parse --show-toplevel");
+$gitroot = pop @$gitroot; chomp $gitroot;
+
 my $dict = "/usr/share/dict/words";
 
 sub hungry_for_words {
@@ -71,23 +69,8 @@ sub hungry_for_words {
 
     #"Why don't you just use '[^a-z]'?" In the pbuilder I'm using to write this, grep includes accented vowels in a-z,
     #potentially generating passwords that are impossible to type with a standard US keyboard.
-    my $words = gib_words($count,$dict);
-    return $words;
-}
+    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $dict | shuf -n$count`;
 
-sub hungry_for_worms {
-    my ($count) = @_;
-    my $wordfile = "$gitroot/extremely_british_words";
-    unless (-s $wordfile) {
-        return hungry_for_words($count);
-    }
-    return gib_words($count,$wordfile);
-}
-
-sub gib_words {
-    my ($c,$f) = @_;
-
-    my @tmp = `egrep -v "[^qwertyuiopasdfghjklzxcvbnm]" $f | shuf -n$c`;
     $words = join (" ", @tmp);
     $words =~ s/[\s]+/ /g;
     $words =~ s/(^\s+|\s+$)//g;

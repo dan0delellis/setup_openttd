@@ -9,11 +9,6 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(do_cmd $gitroot do_cmd_silent do_cmd_stdout do_cmd_topline hungry_for_words hungry_for_worms contains);
 
-our $gitroot;
-my $x;
-($x,$gitroot) = do_cmd("git rev-parse --show-toplevel");
-$gitroot = pop @$gitroot; chomp $gitroot;
-
 sub contains {
     my ($arr, $str) = @_;
     chomp $str;
@@ -55,6 +50,11 @@ sub do_cmd_silent {
     return $rv;
 }
 
+our $gitroot;
+my $x;
+($x,$gitroot) = do_cmd("git rev-parse --show-toplevel");
+$gitroot = pop @$gitroot; chomp $gitroot;
+
 my $dict = "/usr/share/dict/words";
 
 sub hungry_for_words {
@@ -77,8 +77,8 @@ sub hungry_for_words {
 
 sub hungry_for_worms {
     my ($count) = @_;
-    my $wordfile = "$gitroot/exclusively_british_words";
-    unless (-s $wordfile) {
+    my $wordfile = "$gitroot/extremely_british_words";
+    unless (-s $words) {
         return hungry_for_words($count);
     }
     return gib_words($count,$wordfile);
