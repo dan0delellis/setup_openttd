@@ -78,7 +78,8 @@ unless ($defaults) {
             last SET_GRF;
         };
         $grf_opts = process_grf($gro, $opts);
-        print Dumper "Got grf options: $grf_opts";
+        print Dumper "Got grf options: " if $debug;
+        print Dumper $grf_opts if $debug;
         close $gro;
     }
 
@@ -193,11 +194,15 @@ sub process_custom {
 
 sub get_grf {
     my ($grf) = @_;
-    my @data = qw/[newgrf/;
+    my @data = qw/[newgrf]/;
     foreach my $k (keys %$grf) {
-        push @data, "$k = $grf->$k";
+        print Dumper "adding line " if $debug;
+        print Dumper $k if $debug;
+        print Dumper $grf->{$k} if $debug;
+        push @data, "$k = $grf->{$k}";
     }
     my $content = join("\n", @data);
+    print Dumper "generated content:" if $debug;
     return $content;
 }
 
@@ -217,16 +222,22 @@ sub generate_conf {
             next;
         }
 
+        #Skip lines that have configurations in grf_options.cfg
+        if (exists $grf->{$k}) {
+            next;
+        }
+
         #keep section headers
-        if ($k =~m/^\[(\S)+\]$/) {
+        if ($k =~m/^\[(\S+)\]$/) {
             if ($1 =~ m/^newgrf$/) {
                 print Dumper "oh boy here we go" if $debug;
                 #writes a pre-formatted line "[newgrf]\nGRF_ID|GRF_MD5|GRF_FILE = PARAM_1, PARAM_2, ..., PARAM_N" as a 'key'
                 $k = get_grf($grf);
+
                 print Dumper "got: <$k>" if $debug;
             }
             push @out, $k;
-            next
+            next;
         }
 
         #keep lines with no option set
