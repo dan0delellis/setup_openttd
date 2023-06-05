@@ -38,7 +38,7 @@ my ($SERVER_NAME, $SERVER_PASSWORD, $CLIENT_NAME);
 #GetOptions() goes here;
 
 unless (defined $SERVER_PASSWORD) {
-    $SERVER_PASSWORD = hungry_for_words(3);
+    $SERVER_PASSWORD = hungry_for_words(3,25);
 }
 unless (defined $SERVER_NAME) {
     $SERVER_NAME = "The " . hungry_for_words(2) . " OpenTTD Server";
