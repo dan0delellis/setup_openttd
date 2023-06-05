@@ -58,7 +58,7 @@ $gitroot = pop @$gitroot; chomp $gitroot;
 my $dict = "/usr/share/dict/words";
 
 sub hungry_for_words {
-    my ($count) = @_;
+    my ($count,$max) = @_;
     unless($count) {
         $count=3;
     }
@@ -78,7 +78,9 @@ sub hungry_for_words {
     $words =~ s/(^\s+|\s+$)//g;
     chomp $words;
     $words = lc $words;
-
+    if (defined $max && length($words) > $max) {
+        $words = hungry_for_words($count,$max);
+    }
     return $words;
 }
 1;
