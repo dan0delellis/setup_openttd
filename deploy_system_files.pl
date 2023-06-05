@@ -23,7 +23,7 @@ my $dict            = "/usr/share/dict/words";
 
 my $enc_data;
 
-my ($deploy_root,$USER,$EXECUTABLE_PATH,$GAME_INSTALL,$USER_HOME);
+my ($deploy_root,$addon_archive,$USER,$EXECUTABLE_PATH,$GAME_INSTALL,$USER_HOME);
 my ($SERVER_PASSWORD, $CLIENT_NAME, $SERVER_NAME);
 GetOptions (
     "deploy-root=s"     => \$deploy_root,
@@ -31,6 +31,7 @@ GetOptions (
     "executable-path=s" => \$EXECUTABLE_PATH,
     "game-install=s"    => \$GAME_INSTALL,
     "base64=s"          => \$enc_data,
+    "addon_archive=s"     => \$addon_archive,
 ) or die("Error in command line arguments\n");
 
 my $conf;
@@ -39,6 +40,7 @@ my $conf;
 if ($enc_data) {
     $conf = thaw (decode_base64 ($enc_data));
     $deploy_root = $conf->{deploy_source};
+    $addon_archive = $conf->{addon_archive};
     $USER = $conf->{username};
     $GAME_INSTALL  = $conf->{run_path};
     $EXECUTABLE_PATH = $conf->{exe_path};
@@ -75,6 +77,9 @@ push @cmds, "/$seed_script";
 
 #systemd reload
 push @cmds, "systemctl daemon-reload";
+
+#unpack the addons. yes, this probably should be done in download_unpack.pl but that script is enough of a mess as it is already
+push @cmds, "tar xf $addon_archive -C $GAME_INSTALL";
 
 foreach my $cmd (@cmds) {
     my ($rv,$rt) = do_cmd($cmd);
