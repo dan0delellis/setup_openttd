@@ -16,6 +16,9 @@ my $grf_conf = "grf_options.cfg";
 #hashrefs for returned data from scripts
 my ($user_data,$unpack_data);
 
+my $backups = backup_custom();
+
+
 apt_install("$gitroot/required");
 cleanup_old() if ($cleanup);
 install_module();
@@ -35,6 +38,9 @@ my $conf_base64 = encode_base64 freeze(\%conf_data);
 
 generate_system_conf($conf_base64);
 
+unless ($backups =~ m/^\s+$/) {
+    restore_backups($backups);
+}
 finish();
 
 
@@ -102,6 +108,32 @@ sub generate_system_conf {
     my ($opt_data) = @_;
     my $cmd = "$gitroot/deploy_system_files.pl --base64 '$opt_data'";
     `$cmd`;
+}
+
+sub restore_backups {
+    my ($archive_path) = @_;
+    my $cmd = "tar xf $archive_path -C /";
+    run_cmd_silent($cmd);
+}
+
+sub backup_custom {
+    my @custom_files = qw(/home/openttd/.config/openttd/private.cfg /home/openttd/.config/openttd/secrets.cfg /home/openttd/custom_options.cfg /home/openttd/grf_options.cfg);
+
+    my $filelist;
+
+    foreach my $f(@custom_files) {
+        if (-s $f) {
+            $filelist .= "$f ";
+        }
+    }
+    my $backup_archive;
+    unless ($filelist =~ m/^\s+$/) {
+        my $temp = `mktemp -d`; chomp $temp;
+        $backup_archive = "$temp/backup.tar";
+        my $cmd = "tar cf $backup_archive $filelist";
+        `$cmd`;
+    }
+    return $backup_archive;
 }
 
 sub finish {
