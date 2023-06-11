@@ -62,6 +62,7 @@ sub install_module {
 sub cleanup_old {
     my @cmds = (
 	    "ps -u openttd && killall -u openttd",
+        "while ( ps -u openttd > /dev/null && true); do sleep 1; done",
         "grep -q openttd /etc/passwd && userdel -r openttd",
         "test -e /etc/systemd/system/openttd-dedicated.service && rm /etc/systemd/system/openttd-dedicated.service",
         "test -d /etc/default/opentt.d && rm -rf /etc/default/opentt.d",
@@ -166,7 +167,7 @@ sub apt_install {
 
 sub run_cmd_silent {
     my ($c) = @_;
-    if ($c =~ m/(.*)&&(.*)/) {
+    if ($c =~ m/(.*)&&(.*)/ && $c !~ m/^while \(.* && .*\)/) {
         $c = "if ($1); then $2; fi";
     }
 
