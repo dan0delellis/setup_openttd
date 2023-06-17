@@ -13,12 +13,14 @@ die "Must run as root\n" unless ($> == 0);
 my $bin_root        = "usr/local/bin/";
 my $seed_script     = "$bin_root/generate_seed.sh";
 my $options_script  = "$bin_root/shuffle_settings.pl";
+my $motd_script     = "$bin_root/update_motd.sh";
 my $def_seed        = "etc/default/opentt.d/openttd.seed";
 my $def_opt         = "etc/default/opentt.d/openttd.options";
 my $def_cli         = "etc/default/opentt.d/openttd.cli";
 my $tmp_systemd     = "etc/systemd/system/openttd-dedicated.service.template";
 my $defaults_path   = "/etc/default/opentt.d/";
-my $cron_file       = "etc/cron.d/restart_reshuffle_openttd";
+my $reset_cron_file = "etc/cron.d/restart_reshuffle_openttd";
+my $motd_cron_file  = "etc/cron.d/update_motd";
 my $dict            = "/usr/share/dict/words";
 
 my $enc_data;
@@ -72,7 +74,9 @@ push @cmds, "cp $deploy_root/$def_cli /$def_cli";
 #seed generator pre-exec script
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
 push @cmds, "cp $deploy_root/$options_script /$options_script";
-push @cmds, "cp $deploy_root/$cron_file /$cron_file";
+push @cmds, "cp $deploy_root/$motd_script /$motd_script";
+push @cmds, "cp $deploy_root/$motd_cron_file /$cron_file";
+push @cmds, "cp $deploy_root/$reset_cron_file /$cron_file";
 push @cmds, "/$seed_script";
 
 #systemd reload
