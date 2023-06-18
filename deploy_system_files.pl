@@ -75,8 +75,8 @@ push @cmds, "cp $deploy_root/$def_cli /$def_cli";
 push @cmds, "cp $deploy_root/$seed_script /$seed_script";
 push @cmds, "cp $deploy_root/$options_script /$options_script";
 push @cmds, "cp $deploy_root/$motd_script /$motd_script";
-push @cmds, "cp $deploy_root/$motd_cron_file /$cron_file";
-push @cmds, "cp $deploy_root/$reset_cron_file /$cron_file";
+push @cmds, "cp $deploy_root/$motd_cron_file /$motd_cron_file";
+push @cmds, "cp $deploy_root/$reset_cron_file /$reset_cron_file";
 push @cmds, "/$seed_script";
 
 #systemd reload
