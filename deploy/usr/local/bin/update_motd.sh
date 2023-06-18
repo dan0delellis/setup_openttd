@@ -4,9 +4,12 @@ eval "$(systemctl show --no-pager openttd-dedicated.service | grep WorkingDirect
 motd="$WorkingDirectory/scripts/on_server_connect.scr"
 
 remaining=$(echo $(date -d "next sunday 03:30" +%s) - $(date +%s) | bc)
-days=$(echo $remaining / 86400 | bc)
+days=$(echo $(echo $remaining / 86400 | bc) % 7 | bc)
 hours=$(echo "( $remaining % 86400 )" / 3600 | bc)
 minutes=$(echo "( $remaining % 3600 )" / 60 | bc)
-seconds=$(echo "( $remaining % 60 )" | bc)
-echo "say \"$days days, $hours:$minutes:$seconds until server reset\"" > $motd;
-
+seconds="00";
+msg=
+if [ $days != 0 ]; then
+    msg="$days days, "
+fi
+printf  "say \"%s%02d:%02d:%02d until server reset\"\n" $msg $hours $minutes $seconds > $motd;
